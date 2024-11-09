@@ -1,38 +1,52 @@
-name: Generate README and Docs
+name: Render README and Docs
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_call:
+    secrets:
+      BOT_APP_ID:
+        description: The App ID of the GitHub App
+        required: true
+      BOT_APP_PRIVATE_KEY:
+        description: The private key of the GitHub App
+        required: true
 
 jobs:
-  generate-readme:
+  render-readme:
+    name: Render README and Docs
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Generate Token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: "${{ secrets.BOT_APP_ID }}"
+          private-key: "${{ secrets.BOT_APP_PRIVATE_KEY }}"
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.8'
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: "${{ steps.app-token.outputs.token }}"
 
-    - name: Install dependencies
-      run: |
-        pip install pyyaml jinja2
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+          cache: pip
 
-    - name: Generate README and Docs
-      run: |
-        python3 ./scripts/generate_readme.py
+      - name: Install dependencies
+        run: |
+          pip install --requirement requirements.txt && pip freeze
 
-    - name: Commit changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add README.md docs/
-        git commit -m "Auto-generated README and Docs" || echo "No changes to commit"
-        git push https://github-actions[bot]:${{ secrets.PAT_TOKEN }}@github.com/lenaxia/pxe-boot.git main
+      - name: Generate README and Docs
+        env:
+          GITHUB_TOKEN: "${{ steps.app-token.outputs.token }}"
+        run: |
+          python3 ./scripts/generate_readme.py
+
+      - name: Commit changes
+        run: |
+          git config --global user.name "bot-ross"
+          git config --global user.email "98030736+bot-ross[bot]@users.noreply.github.com"
+          git add README.md docs/
+          git commit -m "chore: render README.md and docs" || echo "No changes to commit"
+          git push origin main
