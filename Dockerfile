@@ -2,7 +2,7 @@ FROM debian:bookworm-slim
 
 # Install necessary packages
 RUN apt-get update && \
-    apt-get install -y tftpd-hpa nginx python3 python3-pip && \
+    apt-get install -y tftpd-hpa nginx python3 python3-pip python3.11-venv && \
     python3 -m venv /pxe-server/venv && \
     /pxe-server/venv/bin/pip3 install jinja2 pyyaml flask && \
     apt-get clean && \
