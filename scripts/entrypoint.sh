@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Start the TFTP and HTTP servers
+service xinetd start
+service nginx start
+
+# Run the Flask application
+/pxe-server/venv/bin/python /pxe-server/scripts/metrics.py &
+/pxe-server/venv/bin/python /pxe-server/scripts/healthz.py &
+/pxe-server/venv/bin/python /pxe-server/scripts/apply_configurations.py
+
 # Start TFTP and HTTP servers
 service xinetd start
 service nginx start
