@@ -27,7 +27,7 @@ jobs:
 
     - name: Generate README and Docs
       run: |
-        python3 ./scripts/generate_readme.py
+        python3 /pxe-server/scripts/generate_readme.py
 
     - name: Commit changes
       run: |
