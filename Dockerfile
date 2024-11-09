@@ -3,7 +3,8 @@ FROM debian:bookworm-slim
 # Install necessary packages
 RUN apt-get update && \
     apt-get install -y tftpd-hpa nginx python3 python3-pip && \
-    pip3 install jinja2 pyyaml flask && \
+    python3 -m venv /pxe-server/venv && \
+    /pxe-server/venv/bin/pip3 install jinja2 pyyaml flask && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -27,4 +28,4 @@ RUN echo "service tftp\n{\n    socket_type = dgram\n    protocol = udp\n    wait
 EXPOSE 69/udp 80 8080 8081
 
 # Set the entrypoint
-ENTRYPOINT ["/pxe-server/scripts/entrypoint.sh"]
+ENTRYPOINT ["/pxe-server/venv/bin/python", "/pxe-server/scripts/entrypoint.sh"]
