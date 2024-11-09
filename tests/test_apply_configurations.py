@@ -3,7 +3,7 @@ import yaml
 import jinja2
 from pathlib import Path
 import unittest
-from unittest.mock import patch, mock_open, MagicMock
+from unittest.mock import patch, mock_open, MagicMock, call
 from scripts.apply_configurations import render_template, apply_configurations
 
 class TestApplyConfigurations(unittest.TestCase):
