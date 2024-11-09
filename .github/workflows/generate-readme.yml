@@ -1,0 +1,38 @@
+name: Generate README and Docs
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  generate-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        pip install pyyaml jinja2
+
+    - name: Generate README and Docs
+      run: |
+        python3 .github/workflows/generate_readme.py
+
+    - name: Commit changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add README.md docs/
+        git commit -m "Auto-generated README and Docs" || echo "No changes to commit"
+        git push origin main
