@@ -3,10 +3,10 @@ import yaml
 import jinja2
 
 # Load the YAML configuration
-with open('pxe-server/templates/os_templates.yaml', 'r') as file:
+with open('./templates/os_templates.yaml', 'r') as file:
     os_templates = yaml.safe_load(file)
 
-with open('pxe-server/templates/machine_templates.yaml', 'r') as file:
+with open('./templates/machine_templates.yaml', 'r') as file:
     machine_templates = yaml.safe_load(file)
 
 # Define the Jinja2 template for the README
