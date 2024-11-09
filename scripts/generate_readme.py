@@ -153,6 +153,9 @@ template = template_env.from_string(readme_template)
 # Render the README content
 readme_content = template.render(os_templates=os_templates, machine_templates=machine_templates)
 
+# Ensure the docs directory exists
+os.makedirs('docs', exist_ok=True)
+
 # Write the README content to README.md
 with open('README.md', 'w') as readme_file:
     readme_file.write(readme_content)
@@ -206,6 +209,9 @@ This project provides a Docker image that sets up a PXE Boot server to support b
 
 # Render the documentation content
 docs_content = template.render(os_templates=os_templates, machine_templates=machine_templates)
+
+# Ensure the docs directory exists
+os.makedirs('docs', exist_ok=True)
 
 # Write the documentation content to docs/index.md
 with open('docs/index.md', 'w') as docs_file:
