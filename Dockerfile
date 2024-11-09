@@ -29,4 +29,4 @@ RUN mkdir -p /etc/xinetd.d && \
 EXPOSE 69/udp 80 8080 8081
 
 # Set the entrypoint
-ENTRYPOINT ["/pxe-server/venv/bin/python", "/pxe-server/scripts/entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/pxe-server/scripts/entrypoint.sh"]
