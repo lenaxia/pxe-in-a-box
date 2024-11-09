@@ -22,7 +22,8 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY scripts/entrypoint.sh /pxe-server/scripts/
 
 # Configure TFTP server
-RUN echo "service tftp\n{\n    socket_type = dgram\n    protocol = udp\n    wait = yes\n    user = nobody\n    server = /usr/sbin/in.tftpd\n    server_args = -s /pxe-server/tftpboot/\n    disable = no\n}" > /etc/xinetd.d/tftp
+RUN mkdir -p /etc/xinetd.d && \
+    echo "service tftp\n{\n    socket_type = dgram\n    protocol = udp\n    wait = yes\n    user = nobody\n    server = /usr/sbin/in.tftpd\n    server_args = -s /pxe-server/tftpboot/\n    disable = no\n}" > /etc/xinetd.d/tftp
 
 # Expose necessary ports
 EXPOSE 69/udp 80 8080 8081
