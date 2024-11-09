@@ -1,0 +1,31 @@
+ubuntu:
+  kernel: vmlinuz
+  initrd: initrd.img
+  config_template: ubuntu.j2
+  preseed_template: ubuntu_preseed.j2
+  image_url: http://archive.ubuntu.com/ubuntu/dists/focal/main/installer-amd64/current/legacy-images/netboot/ubuntu-installer/amd64/linux
+  iso_url: http://releases.ubuntu.com/20.04/ubuntu-20.04.1-live-server-amd64.iso
+
+talos_os:
+  kernel: vmlinuz
+  initrd: initrd.img
+  config_template: talos_os.j2
+  kickstart_template: talos_kickstart.j2
+  image_url: https://releases.talos.dev/v0.12.0/talos-v0.12.0-x86_64-efi.iso
+  iso_url: https://releases.talos.dev/v0.12.0/talos-v0.12.0-x86_64-efi.iso
+
+debian:
+  kernel: vmlinuz
+  initrd: initrd.img
+  config_template: debian.j2
+  preseed_template: debian_preseed.j2
+  image_url: http://ftp.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/debian-installer/amd64/linux
+  iso_url: http://ftp.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/debian-installer/amd64/initrd.gz
+
+raspbian:
+  kernel: vmlinuz
+  initrd: initrd.img
+  config_template: raspbian.j2
+  cloud_init_template: cloud_init.j2
+  image_url: http://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2021-05-28/2021-05-07-raspios-buster-arm64.iso
+  iso_url: http://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2021-05-28/2021-05-07-raspios-buster-arm64.iso

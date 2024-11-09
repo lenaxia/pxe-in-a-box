@@ -1,0 +1,22 @@
+# Kickstart file for Talos OS
+# Network configuration
+network --bootproto=static --ip={{ machine['static_ip'] }} --netmask=255.255.255.0 --gateway={{ machine['gateway'] }} --nameserver={{ machine['dns_servers'] | join(',') }}
+
+# Root password
+rootpw --plaintext {{ machine['default_password'] }}
+
+# User creation
+user --name={{ machine['default_user'] }} --password={{ machine['default_password'] }} --plaintext --groups=wheel --iscrypted
+
+# SSH keys
+%post --log=/root/ks-post.log
+cat << EOF > /root/.ssh/authorized_keys
+{{ machine['ssh_keys'] | join('\n') }}
+EOF
+%end
+
+# Partitioning
+clearpart --all --initlabel
+{% for partition in machine['partitions'] %}
+part {{ partition['mount_point'] }} --size={{ partition['size'] }} --ondisk={{ partition['disk'] }}
+{% endfor %}

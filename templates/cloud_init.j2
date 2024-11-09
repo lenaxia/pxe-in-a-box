@@ -1,0 +1,40 @@
+#cloud-config
+users:
+  - name: {{ machine['default_user'] }}
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    groups: sudo
+    shell: /bin/bash
+    ssh-authorized-keys:
+      - {{ machine['ssh_keys'] | join('\n  - ') }}
+
+# Network configuration
+network:
+  version: 2
+  ethernets:
+    {{ machine['interface'] | default('eth0') }}:
+      dhcp4: no
+      addresses:
+        - {{ machine['static_ip'] }}/24
+      gateway4: {{ machine['gateway'] }}
+      nameservers:
+        addresses: [{{ machine['dns_servers'] | join(', ') }}]
+
+# Partitioning
+storage:
+  config:
+    - type: disk
+      id: disk0
+      path: {{ machine['partitions'][0]['disk'] }}
+    - type: partition
+      id: partition0
+      device: disk0
+      size: {{ machine['partitions'][0]['size'] }}
+      wipe: superblock
+    - type: format
+      id: format0
+      volume: partition0
+      filesystem: ext4
+    - type: mount
+      id: mount0
+      device: format0
+      path: {{ machine['partitions'][0]['mount_point'] }}

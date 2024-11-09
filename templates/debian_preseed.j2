@@ -1,0 +1,23 @@
+d-i preseed/late_command string in-target sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config; in-target service ssh restart
+d-i netcfg/choose_interface select {{ machine['interface'] | default('eth0') }}
+d-i netcfg/get_ipaddress string {{ machine['static_ip'] }}
+d-i netcfg/get_netmask string 255.255.255.0
+d-i netcfg/get_gateway string {{ machine['gateway'] }}
+d-i netcfg/get_nameservers string {{ machine['dns_servers'] | join(' ') }}
+d-i passwd/root-password password {{ machine['default_password'] }}
+d-i passwd/root-password-again password {{ machine['default_password'] }}
+d-i user-setup/allow-password-weak boolean true
+d-i user-setup/encrypt-home boolean false
+d-i passwd/user-fullname string {{ machine['default_user'] }}
+d-i passwd/username string {{ machine['default_user'] }}
+d-i passwd/user-password password {{ machine['default_password'] }}
+d-i passwd/user-password-again password {{ machine['default_password'] }}
+d-i ssh/permit_root_login boolean true
+d-i ssh/ssh_host_rsa_key string {{ machine['ssh_keys'] | join('\n') }}
+d-i partman-auto/disk string {{ machine['partitions'][0]['disk'] }}
+d-i partman-auto/method string regular
+d-i partman-auto/choose_recipe select atomic
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true

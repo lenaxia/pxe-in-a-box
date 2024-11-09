@@ -1,0 +1,23 @@
+DEFAULT menu
+PROMPT 0
+TIMEOUT 500
+
+LABEL ubuntu
+    MENU LABEL Ubuntu
+    KERNEL /bios/ubuntu-vmlinuz
+    APPEND initrd=/bios/ubuntu-initrd.img
+
+LABEL talos_os
+    MENU LABEL Talos OS
+    KERNEL /uefi/talos_os-vmlinuz
+    APPEND initrd=/uefi/talos_os-initrd.img
+
+LABEL debian
+    MENU LABEL Debian
+    KERNEL /bios/debian-vmlinuz
+    APPEND initrd=/bios/debian-initrd.img
+
+LABEL raspbian
+    MENU LABEL Raspbian
+    KERNEL /bios/raspbian-vmlinuz
+    APPEND initrd=/bios/raspbian-initrd.img

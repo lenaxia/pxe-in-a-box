@@ -1,0 +1,56 @@
+machines:
+  - mac_address: "00:11:22:33:44:55"
+    os: "ubuntu"
+    static_ip: "192.168.1.100"
+    gateway: "192.168.1.1"
+    dns_servers: ["8.8.8.8", "8.8.4.4"]
+    partitions:
+      - disk: "/dev/sda"
+        mount_point: "/"
+        size: "20G"
+    ssh_keys:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA..."
+    default_user: "pxeuser"
+    default_password: "pxepassword"
+
+  - mac_address: "66:77:88:99:AA:BB"
+    os: "talos_os"
+    static_ip: "192.168.1.101"
+    gateway: "192.168.1.1"
+    dns_servers: ["8.8.8.8", "8.8.4.4"]
+    partitions:
+      - disk: "/dev/sdb"
+        mount_point: "/"
+        size: "30G"
+    ssh_keys:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA..."
+    default_user: "pxeuser"
+    default_password: "pxepassword"
+
+  - mac_address: "CC:DD:EE:FF:00:11"
+    os: "debian"
+    static_ip: "192.168.1.102"
+    gateway: "192.168.1.1"
+    dns_servers: ["8.8.8.8", "8.8.4.4"]
+    partitions:
+      - disk: "/dev/sdc"
+        mount_point: "/"
+        size: "25G"
+    ssh_keys:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA..."
+    default_user: "pxeuser"
+    default_password: "pxepassword"
+
+  - mac_address: "22:33:44:55:66:77"
+    os: "raspbian"
+    static_ip: "192.168.1.103"
+    gateway: "192.168.1.1"
+    dns_servers: ["8.8.8.8", "8.8.4.4"]
+    partitions:
+      - disk: "/dev/sdd"
+        mount_point: "/"
+        size: "15G"
+    ssh_keys:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA..."
+    default_user: "pxeuser"
+    default_password: "pxepassword"

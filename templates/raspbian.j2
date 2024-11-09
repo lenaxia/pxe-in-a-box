@@ -1,0 +1,2 @@
+default vmlinuz
+append initrd=initrd.img interface=eth0 url=http://<server_ip>/configs/{{ os_name }}.cfg user-data=http://<server_ip>/cloud-init/{{ mac_address }}.yaml
