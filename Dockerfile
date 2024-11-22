@@ -4,7 +4,7 @@ FROM debian:bookworm-slim
 RUN apt-get update && \
     apt-get install -y tftpd-hpa nginx python3 python3-pip python3.11-venv && \
     python3 -m venv /pxe-server/venv && \
-    /pxe-server/venv/bin/pip3 install jinja2 pyyaml flask && \
+    /pxe-server/venv/bin/pip3 install -r /pxe-server/requirements.txt && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
