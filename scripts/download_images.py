@@ -4,6 +4,16 @@ import yaml
 from pathlib import Path
 import jinja2
 
+# Function to render Jinja templates
+def render_template(template_file, output_file, context):
+    template_loader = jinja2.FileSystemLoader(searchpath="/pxe-server/templates")
+    template_env = jinja2.Environment(loader=template_loader)
+    template = template_env.get_template(template_file)
+    output = template.render(context)
+    with open(output_file, 'w') as f:
+        f.write(output)
+    os.chmod(output_file, 0o644)  # Set file permissions
+
 # Load the YAML configuration
 with open('/pxe-server/templates/os_templates.yaml', 'r') as file:
     os_templates = yaml.safe_load(file)
@@ -52,13 +62,3 @@ for os_name, config in os_templates.items():
         cloud_init_path = Path(f'/pxe-server/http/cloud-init/{os_name}.yaml')
         cloud_init_path.parent.mkdir(parents=True, exist_ok=True)
         render_template(config['cloud_init_template'], cloud_init_path, config)
-
-# Function to render Jinja templates
-def render_template(template_file, output_file, context):
-    template_loader = jinja2.FileSystemLoader(searchpath="/pxe-server/templates")
-    template_env = jinja2.Environment(loader=template_loader)
-    template = template_env.get_template(template_file)
-    output = template.render(context)
-    with open(output_file, 'w') as f:
-        f.write(output)
-    os.chmod(output_file, 0o644)  # Set file permissions
