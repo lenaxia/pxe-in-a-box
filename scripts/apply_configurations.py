@@ -22,6 +22,7 @@ def render_template(template_file, output_file, context):
     output = template.render(context)
     with open(output_file, 'w') as f:
         f.write(output)
+    os.chmod(output_file, 0o644)  # Set file permissions
 
 # Apply core OS configurations
 for os_name, config in os_templates.items():
