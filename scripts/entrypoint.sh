@@ -15,6 +15,3 @@ python3 /pxe-server/scripts/metrics.py &
 
 # Keep the container running
 tail -f /dev/null
-
-# Keep the container running
-tail -f /dev/null
