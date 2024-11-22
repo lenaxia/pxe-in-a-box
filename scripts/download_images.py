@@ -2,6 +2,7 @@ import os
 import requests
 import yaml
 from pathlib import Path
+import jinja2
 
 # Load the YAML configuration
 with open('/pxe-server/templates/os_templates.yaml', 'r') as file:
