@@ -1,2 +1,5 @@
  jinja2
  pyyaml
+ requests
+ flask
+ pyyaml
