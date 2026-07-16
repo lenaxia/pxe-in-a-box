@@ -26,6 +26,7 @@ Thumbs.db
 
 # Ansible retry files
 *.retry
+ansible/tests/rendered_output/
 
 # Vault password files
 .vault_pass

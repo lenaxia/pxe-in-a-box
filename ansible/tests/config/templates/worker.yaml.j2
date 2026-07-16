@@ -1,4 +1,4 @@
-# Talos control plane machine config template.
+# Talos worker machine config template.
 # Rendered by Ansible with Vault-decrypted secrets.
 #
 # Variables (provided by Ansible from machines.yaml group/machine vars + Vault):
@@ -9,38 +9,23 @@
 #   {{ node_ip }}              — machine IP (optional, for static assignment)
 #   {{ talos_ca_cert }}        — cluster CA certificate (from Vault)
 #   {{ talos_join_token }}     — trustd join token (from Vault)
-#   {{ talos_etcd_ca_cert }}   — etcd CA certificate (from Vault)
 
 version: v1alpha1
 machine:
-  type: controlplane
+  type: worker
   kubelet:
     image: ghcr.io/siderolabs/kubelet:{{ kubernetes_version }}
   network:
     hostname: {{ hostname }}
-    {% if node_ip is defined and node_ip | length > 0 %}
+    {% if node_ip is defined %}
     interfaces:
       - interface: eth0
         addresses:
           - {{ node_ip }}/24
     {% endif %}
-  certSANs:
-    - {{ cluster_endpoint }}
   ca:
     crt: "{{ talos_ca_cert }}"
-  # Note: CA key omitted for join configs. Only bootstrap node includes the key.
-  # token: "{{ talos_join_token }}"
 cluster:
   clusterName: {{ cluster_name }}
   controlPlane:
     endpoint: https://{{ cluster_endpoint }}:6443
-  network:
-    dnsDomain: cluster.local
-    podSubnets:
-      - 10.244.0.0/16
-    serviceSubnets:
-      - 10.96.0.0/12
-  etcd:
-    ca:
-      crt: "{{ talos_etcd_ca_cert }}"
-    # Note: etcd CA key omitted for join configs.

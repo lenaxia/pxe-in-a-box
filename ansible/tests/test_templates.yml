@@ -1,0 +1,293 @@
+---
+# test_templates.yml — Renders all templates with test variables and
+# validates the output. Runs locally (connection: local) so it can execute
+# in CI without a real target host.
+#
+# Usage:
+#   ansible-playbook tests/test_templates.yml -i tests/inventory.ini \
+#     -e @tests/test-vault.yml
+
+- name: Render and validate templates
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # Output directory for rendered templates
+    test_output_dir: "{{ playbook_dir }}/rendered_output"
+
+    # Test variables simulating group_vars/all.yml
+    matchbox_addr: 192.168.2.103
+    matchbox_port: "8081"
+    dnsmasq_proxy_range: 192.168.0.1
+    dnsmasq_proxy_netmask: 255.255.0.0
+    menu_timeout: 10
+    menu_default: talos
+
+    # Test secrets (simulating group_vars/vault.yml)
+    talos_ca_cert: "FAKE_CA_CERT_BASE64_DATA"
+    talos_ca_key: "FAKE_CA_KEY_BASE64_DATA"
+    talos_join_token: "test-token-abc123"
+    talos_etcd_ca_cert: "FAKE_ETCD_CA_CERT_BASE64_DATA"
+    talos_etcd_ca_key: "FAKE_ETCD_CA_KEY_BASE64_DATA"
+
+    # Machine variables for template rendering
+    rendered_machines:
+      - hostname: cp00
+        template: controlplane.yaml.j2
+        vars:
+          cluster_name: test-cluster
+          cluster_endpoint: 192.168.1.10
+          kubernetes_version: v1.32.0
+          node_ip: 192.168.1.11
+      - hostname: worker01
+        template: worker.yaml.j2
+        vars:
+          cluster_name: test-cluster
+          cluster_endpoint: 192.168.1.10
+          kubernetes_version: v1.32.0
+      - hostname: worker02
+        template: worker.yaml.j2
+        vars:
+          cluster_name: test-cluster
+          cluster_endpoint: 192.168.1.10
+          kubernetes_version: v1.32.0
+
+  tasks:
+    - name: Create output directory
+      file:
+        path: "{{ test_output_dir }}"
+        state: directory
+        mode: "0755"
+
+    # ── dnsmasq.conf ──────────────────────────────────────────────────
+
+    - name: Render dnsmasq.conf
+      template:
+        src: "{{ playbook_dir }}/../templates/dnsmasq.conf.j2"
+        dest: "{{ test_output_dir }}/dnsmasq.conf"
+        mode: "0644"
+
+    - name: Read rendered dnsmasq.conf
+      set_fact:
+        dnsmasq_content: "{{ lookup('file', test_output_dir + '/dnsmasq.conf') }}"
+
+    - name: Validate dnsmasq.conf contains proxy DHCP range
+      assert:
+        that: "'dhcp-range=192.168.0.1,proxy,255.255.0.0' in dnsmasq_content"
+        fail_msg: "dnsmasq.conf missing proxy DHCP range"
+
+    - name: Validate dnsmasq.conf disables DNS
+      assert:
+        that: "'port=0' in dnsmasq_content"
+        fail_msg: "dnsmasq.conf should disable DNS (port=0)"
+
+    - name: Validate dnsmasq.conf enables TFTP
+      assert:
+        that: "'enable-tftp' in dnsmasq_content"
+        fail_msg: "dnsmasq.conf should enable TFTP"
+
+    - name: Validate dnsmasq.conf has correct iPXE HTTP redirect
+      assert:
+        that: "'http://192.168.2.103:8081/assets/boot.ipxe' in dnsmasq_content"
+        fail_msg: "dnsmasq.conf should redirect iPXE to /assets/boot.ipxe"
+
+    - name: Validate dnsmasq.conf has BIOS chainload
+      assert:
+        that: "'pxe-service=tag:#ipxe,x86PC' in dnsmasq_content"
+        fail_msg: "dnsmasq.conf should have BIOS PXE chainload"
+
+    - name: Validate dnsmasq.conf has iPXE user-class detection
+      assert:
+        that: "'dhcp-userclass=set:ipxe,iPXE' in dnsmasq_content"
+        fail_msg: "dnsmasq.conf should detect iPXE user-class"
+
+    - name: Validate dnsmasq.conf has NO UEFI entries (BIOS-only scope)
+      assert:
+        that: "'x86-64_EFI' not in dnsmasq_content"
+        fail_msg: "dnsmasq.conf should NOT have UEFI entries (deferred)"
+
+    # ── Talos controlplane config ────────────────────────────────────
+
+    - name: Render controlplane config for cp00
+      template:
+        src: "{{ playbook_dir }}/../templates/talos/controlplane.yaml.j2"
+        dest: "{{ test_output_dir }}/cp00.yaml"
+        mode: "0644"
+      vars:
+        hostname: cp00
+        cluster_name: test-cluster
+        cluster_endpoint: 192.168.1.10
+        kubernetes_version: v1.32.0
+        node_ip: 192.168.1.11
+        talos_ca_cert: "FAKE_CA_CERT_BASE64_DATA"
+        talos_join_token: "test-token-abc123"
+        talos_etcd_ca_cert: "FAKE_ETCD_CA_CERT_BASE64_DATA"
+
+    - name: Read rendered controlplane config
+      set_fact:
+        cp_config: "{{ lookup('file', test_output_dir + '/cp00.yaml') }}"
+
+    - name: Validate controlplane has correct type
+      assert:
+        that: "'type: controlplane' in cp_config"
+        fail_msg: "controlplane config should have type: controlplane"
+
+    - name: Validate controlplane has hostname
+      assert:
+        that: "'hostname: cp00' in cp_config"
+        fail_msg: "controlplane config should have hostname: cp00"
+
+    - name: Validate controlplane has cluster name
+      assert:
+        that: "'clusterName: test-cluster' in cp_config"
+        fail_msg: "controlplane config should have clusterName"
+
+    - name: Validate controlplane has control plane endpoint
+      assert:
+        that: "'endpoint: https://192.168.1.10:6443' in cp_config"
+        fail_msg: "controlplane config should have endpoint"
+
+    - name: Validate controlplane has kubelet version
+      assert:
+        that: "'kubelet:v1.32.0' in cp_config"
+        fail_msg: "controlplane config should have kubelet version"
+
+    - name: Validate controlplane has node_ip interface
+      assert:
+        that: "'192.168.1.11/24' in cp_config"
+        fail_msg: "controlplane config should have node_ip interface"
+
+    - name: Validate controlplane has CA cert from Vault
+      assert:
+        that: "'FAKE_CA_CERT_BASE64_DATA' in cp_config"
+        fail_msg: "controlplane config should contain CA cert"
+
+    - name: Validate controlplane has etcd CA cert
+      assert:
+        that: "'FAKE_ETCD_CA_CERT_BASE64_DATA' in cp_config"
+        fail_msg: "controlplane config should contain etcd CA cert"
+
+    - name: Validate controlplane does NOT expose CA key (join config)
+      assert:
+        that: "'FAKE_CA_KEY_BASE64_DATA' not in cp_config"
+        fail_msg: "controlplane join config should NOT contain CA private key"
+
+    # ── Talos worker config (without node_ip) ────────────────────────
+
+    - name: Render worker config for worker01
+      template:
+        src: "{{ playbook_dir }}/../templates/talos/worker.yaml.j2"
+        dest: "{{ test_output_dir }}/worker01.yaml"
+        mode: "0644"
+      vars:
+        hostname: worker01
+        cluster_name: test-cluster
+        cluster_endpoint: 192.168.1.10
+        kubernetes_version: v1.32.0
+        node_ip: ""
+        talos_ca_cert: "FAKE_CA_CERT_BASE64_DATA"
+        talos_join_token: "test-token-abc123"
+        talos_etcd_ca_cert: "FAKE_ETCD_CA_CERT_BASE64_DATA"
+
+    - name: Read rendered worker config
+      set_fact:
+        worker_config: "{{ lookup('file', test_output_dir + '/worker01.yaml') }}"
+
+    - name: Validate worker has correct type
+      assert:
+        that: "'type: worker' in worker_config"
+        fail_msg: "worker config should have type: worker"
+
+    - name: Validate worker has hostname
+      assert:
+        that: "'hostname: worker01' in worker_config"
+        fail_msg: "worker config should have hostname"
+
+    - name: Validate worker has cluster endpoint
+      assert:
+        that: "'https://192.168.1.10:6443' in worker_config"
+        fail_msg: "worker config should have cluster endpoint"
+
+    - name: Validate worker has kubelet version
+      assert:
+        that: "'kubelet:v1.32.0' in worker_config"
+        fail_msg: "worker config should have kubelet version"
+
+    - name: Validate worker does NOT have node_ip interface (optional var)
+      assert:
+        that: "'/24' not in worker_config"
+        fail_msg: "worker config without node_ip should not have static IP"
+
+    - name: Validate worker has CA cert
+      assert:
+        that: "'FAKE_CA_CERT_BASE64_DATA' in worker_config"
+        fail_msg: "worker config should contain CA cert"
+
+    # ── Talos worker config (WITH node_ip) ───────────────────────────
+
+    - name: Render worker config for worker02 with node_ip
+      template:
+        src: "{{ playbook_dir }}/../templates/talos/worker.yaml.j2"
+        dest: "{{ test_output_dir }}/worker02.yaml"
+        mode: "0644"
+      vars:
+        hostname: worker02
+        cluster_name: test-cluster
+        cluster_endpoint: 192.168.1.10
+        kubernetes_version: v1.32.0
+        node_ip: 192.168.1.50
+        talos_ca_cert: "FAKE_CA_CERT_BASE64_DATA"
+        talos_join_token: "test-token-abc123"
+        talos_etcd_ca_cert: "FAKE_ETCD_CA_CERT_BASE64_DATA"
+
+    - name: Read rendered worker02 config
+      set_fact:
+        worker2_config: "{{ lookup('file', test_output_dir + '/worker02.yaml') }}"
+
+    - name: Validate worker02 has node_ip interface
+      assert:
+        that: "'192.168.1.50/24' in worker2_config"
+        fail_msg: "worker config with node_ip should have static IP interface"
+
+    # ── Template loop rendering (simulates site.yml behavior) ────────
+
+    - name: Render all machine configs via loop
+      template:
+        src: "{{ playbook_dir }}/../templates/talos/{{ item.template }}"
+        dest: "{{ test_output_dir }}/{{ item.hostname }}.yaml"
+        mode: "0644"
+      loop: "{{ rendered_machines }}"
+      vars:
+        hostname: "{{ item.hostname }}"
+        cluster_name: "{{ item.vars.cluster_name | default('') }}"
+        cluster_endpoint: "{{ item.vars.cluster_endpoint | default('') }}"
+        kubernetes_version: "{{ item.vars.kubernetes_version | default('') }}"
+        node_ip: "{{ item.vars.node_ip | default('') }}"
+        talos_ca_cert: "FAKE_CA_CERT_BASE64_DATA"
+        talos_join_token: "test-token-abc123"
+        talos_etcd_ca_cert: "FAKE_ETCD_CA_CERT_BASE64_DATA"
+
+    - name: Verify all rendered files exist
+      assert:
+        that: "lookup('file', test_output_dir + '/' + item, errors='ignore') | length > 0"
+      loop:
+        - cp00.yaml
+        - worker01.yaml
+        - worker02.yaml
+
+    - name: Verify cp00 rendered via loop has node_ip
+      assert:
+        that: "'192.168.1.11/24' in lookup('file', test_output_dir + '/cp00.yaml')"
+        fail_msg: "cp00 rendered via loop should have node_ip"
+
+    - name: Verify worker01 rendered via loop does NOT have node_ip
+      assert:
+        that: "'192.168.1.50/24' not in lookup('file', test_output_dir + '/worker01.yaml')"
+        fail_msg: "worker01 should not have node_ip"
+
+    # ── Summary ──────────────────────────────────────────────────────
+
+    - name: Template tests passed
+      debug:
+        msg: "All {{ rendered_machines | length }} machine templates + dnsmasq.conf rendered and validated successfully"

@@ -1,0 +1,6 @@
+timeout: 10
+default: talos
+entries:
+  - id: talos
+    label: "Talos Linux (Maintenance Mode)"
+    profile: talos-v1.10.6

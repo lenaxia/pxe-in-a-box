@@ -18,7 +18,7 @@ machine:
     image: ghcr.io/siderolabs/kubelet:{{ kubernetes_version }}
   network:
     hostname: {{ hostname }}
-    {% if node_ip is defined and node_ip | length > 0 %}
+    {% if node_ip is defined %}
     interfaces:
       - interface: eth0
         addresses:

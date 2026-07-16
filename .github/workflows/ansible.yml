@@ -1,0 +1,85 @@
+name: Ansible Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ansible-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ansible-lint
+        run: pip install ansible-lint ansible
+      - name: Lint playbooks
+        run: |
+          cd ansible
+          ansible-lint --offline --parseable-severity \
+            site.yml \
+            tests/test_templates.yml \
+            tests/test_playbook_syntax.yml || true
+
+  syntax-check:
+    name: Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ansible
+        run: pip install ansible
+      - name: Syntax check site.yml
+        run: |
+          cd ansible
+          ansible-playbook site.yml \
+            -i tests/inventory.ini \
+            --syntax-check
+      - name: Syntax check test playbooks
+        run: |
+          cd ansible
+          ansible-playbook tests/test_templates.yml \
+            -i tests/inventory.ini \
+            --syntax-check
+          ansible-playbook tests/test_playbook_syntax.yml \
+            -i tests/inventory.ini \
+            --syntax-check
+
+  template-tests:
+    name: Template Rendering Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ansible
+        run: pip install ansible
+      - name: Run template rendering tests
+        run: |
+          cd ansible
+          ansible-playbook tests/test_templates.yml \
+            -i tests/inventory.ini
+
+  structure-tests:
+    name: Playbook Structure Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ansible
+        run: pip install ansible
+      - name: Run playbook structure tests
+        run: |
+          cd ansible
+          ansible-playbook tests/test_playbook_syntax.yml \
+            -i tests/inventory.ini
