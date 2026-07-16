@@ -5,9 +5,9 @@ title = "PXE-in-a-Box gitleaks config"
 useDefault = true
 
 [[allowlists]]
-description = "Allow Jinja2 template placeholders (variable references, not real values)"
+description = "Allow Go template placeholders (variable references, not real values)"
 paths = [
-  '''ansible/templates/.*\.j2$''',
+  '''templates/.*\.tmpl$''',
 ]
 regexes = [
   '''\{\{.*\}\}''',
@@ -16,10 +16,10 @@ regexes = [
 [[allowlists]]
 description = "Allow placeholder values in example/template configs"
 paths = [
-  '''ansible/group_vars/vault\.yml$''',
-  '''examples/.*\.yaml$''',
+  '''examples/secrets\.yaml$''',
+  '''examples/machines\.yaml$''',
 ]
 regexes = [
-  '''REPLACE_WITH_YOUR_.*''',
-  '''\.\.\.''',  # Truncated placeholder values like "LS0tLS1CRUdJTi..."
+  '''REPLACE_WITH_.*''',
+  '''\.\.\.''',  # Truncated placeholder values
 ]

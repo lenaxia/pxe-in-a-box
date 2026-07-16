@@ -1,5 +1,11 @@
 # PXE-in-a-Box — Architecture & Design
 
+> **Note:** This document describes the original architecture including the
+> Ansible deployment design. The current implementation has replaced Ansible
+> with in-container Go template rendering. See the README for the current
+> deployment flow. The core PXE architecture (matchbox + dnsmasq + iPXE) is
+> unchanged.
+
 ---
 
 ## 1. Architecture Overview

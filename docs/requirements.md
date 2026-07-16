@@ -1,5 +1,10 @@
 # PXE-in-a-Box — Final Requirements
 
+> **Note:** This document captures the original requirements including the
+> Ansible deployment model. The current implementation uses in-container
+> Go template rendering instead of Ansible. The core requirements are
+> unchanged. See the README for the current implementation.
+
 ---
 
 ## 0. Context & Design Principles

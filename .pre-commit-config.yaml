@@ -12,7 +12,7 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
         args: [--allow-multiple-documents]
-        exclude: ^(ansible/tests/rendered_output/|.*\.j2$)
+        exclude: ^(.*\.tmpl$)
       - id: check-added-large-files
         args: [--maxkb=1024]
       - id: check-merge-conflict

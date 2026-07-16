@@ -28,7 +28,7 @@ pre-commit install --hook-type pre-push
 
 ```bash
 make test-unit          # fast, no deps
-make test-integration   # pipeline tests, OS URL checks
+make test-integration   # pipeline tests, OS URL checks, render tests
 make test-e2e-http      # needs matchbox on PATH
 make test-e2e-qemu      # needs matchbox + qemu-system-x86_64
 ```
@@ -56,10 +56,14 @@ make test-e2e-qemu      # needs matchbox + qemu-system-x86_64
 
 ## Adding a New Template Variable
 
-1. Add the variable to the Jinja2 template (`ansible/templates/talos/*.j2`)
-2. Document it in the README template variables table
-3. Add a test case in `ansible/tests/test_templates.yml`
-4. Add to `examples/machines.yaml` as a comment
+1. Add the variable to the Go template (`templates/*.tmpl`)
+2. Add the field to `TemplateData` in `internal/renderer/types.go`
+3. Add mapping in `BuildTemplateData` in `internal/renderer/engine.go`
+4. Add validation in `Validate()` if required
+5. Document it in the README template variables table
+6. Add a test case in `internal/renderer/engine_test.go`
+7. Add a test in `internal/e2e/render_pipeline_integration_test.go`
+8. Update `examples/machines.yaml` as a comment
 
 ## Release Process
 

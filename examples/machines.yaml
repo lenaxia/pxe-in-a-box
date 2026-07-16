@@ -1,10 +1,10 @@
 # Example machine definitions for PXE-in-a-Box
-# Copy to ansible/files/config/machines.yaml and edit for your environment.
+# Copy to your config/ directory and edit for your environment.
 
 groups:
   - name: controlplane
     profile: talos-v1.10.6
-    template: controlplane.yaml.j2
+    template: controlplane.yaml.tmpl
     vars:
       install_disk: /dev/nvme0n1
       # Get your installer image (with schematic) from factory.talos.dev
@@ -25,7 +25,7 @@ groups:
 
   - name: workers
     profile: talos-v1.10.6
-    template: worker.yaml.j2
+    template: worker.yaml.tmpl
     vars:
       installer_image: factory.talos.dev/metal-installer/REPLACE_WITH_YOUR_SCHEMATIC:v1.12.4
     machines:

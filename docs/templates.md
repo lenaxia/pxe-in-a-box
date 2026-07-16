@@ -1,21 +1,25 @@
 # Talos Config Templates
 
-PXE-in-a-Box uses Jinja2 templates to render Talos machine configs at deploy
-time. This eliminates per-machine config files for machines that share the
-same configuration pattern.
+PXE-in-a-Box uses Go `text/template` to render Talos machine configs at
+container startup. This eliminates per-machine config files for machines
+that share the same configuration pattern.
 
 ## Template Files
 
 | Template | Used by | Description |
 |----------|---------|-------------|
-| `controlplane.yaml.j2` | controlplane group | Full CP config: etcd, API server, scheduler, VIP |
-| `worker.yaml.j2` | worker groups | Worker config: mounts, UserVolumeConfig, optional GPU |
+| `controlplane.yaml.tmpl` | controlplane groups | Full CP config: etcd, API server, scheduler, VIP |
+| `worker.yaml.tmpl` | worker groups | Worker config: mounts, UserVolumeConfig, optional GPU |
+
+Templates are Go `text/template` files using `{{ .FieldName }}` syntax.
+If no `templates/` directory is provided in the config volume, the
+defaults baked into the Docker image are used.
 
 ## What's Templated vs Static
 
-### Shared across all machines (from vault.yml)
+### Shared across all machines (from secrets.yaml)
 
-All secrets come from Ansible Vault — never in the repo or the image:
+All secrets come from the secrets file — never in the repo or the image:
 
 - Machine token, CA cert, CA key (CP only)
 - Cluster ID, secret, token
@@ -61,10 +65,10 @@ UserVolumeConfig for longhorn storage.
 ```yaml
 # In machines.yaml:
 - name: workers-gpu
-  profile: talos-v1.10.6
-  template: worker.yaml.j2
+  profile: talos-nvidia               # IF asset with NVIDIA drivers
+  template: worker.yaml.tmpl
   vars:
-    is_gpu: true              # key flag
+    is_gpu: true                       # key flag
     installer_image: factory.talos.dev/metal-installer/NVIDIA_SCHEMATIC:v1.12.4
   machines:
     - mac: aa:bb:cc:dd:00:20
@@ -75,6 +79,10 @@ UserVolumeConfig for longhorn storage.
 
 Renders with: NVIDIA container runtime, nvidia kernel modules,
 `bpf_jit_harden` sysctl, custom containerd config.
+
+**Important:** GPU workers need a different `profile` (asset ID) that
+references an Image Factory build with NVIDIA extensions. The stock
+Talos kernel does not include NVIDIA drivers.
 
 ## When to Use Singletons Instead
 
@@ -90,21 +98,14 @@ singletons:
   - mac: aa:bb:cc:dd:00:30
     hostname: worker-special
     profile: talos-v1.10.6
-    config: worker-special.yaml    # place in ansible/files/config/static/
+    config: worker-special.yaml    # place in config/static/
 ```
 
 The config file is served as-is via matchbox at `/assets/static/worker-special.yaml`.
 
 ## Verification
 
-Template rendering is verified by `ansible/tests/render-check.yml`, which
-renders templates with test data and asserts all key fields are present
-and correct. Run with:
-
-```bash
-make test-ansible
-```
-
-For a full comparison against real talhelper-rendered configs, see the
-render-check playbook. It verifies 35+ fields match the original output
-including all certs, keys, network config, and cluster settings.
+Template rendering is verified by integration tests:
+- `internal/renderer/engine_test.go` — 32 unit tests for rendering + validation
+- `internal/e2e/render_pipeline_integration_test.go` — renders actual shipped
+  templates and verifies all sections, secrets, install config, GPU sections

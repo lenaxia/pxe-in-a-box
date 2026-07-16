@@ -14,9 +14,9 @@ cd your-talhelper-dir/kubernetes/bootstrap/talos
 sops -d talsecret.sops.yaml > talsecret.yaml
 ```
 
-Map the fields to `vault.yml`:
+Map the fields to `secrets.yaml`:
 
-| talhelper field | vault.yml variable |
+| talhelper field | secrets.yaml field |
 |----------------|-------------------|
 | `machine.token` | `machine_token` |
 | `certs.os.crt` | `machine_ca_cert` |
@@ -24,7 +24,7 @@ Map the fields to `vault.yml`:
 | `cluster.id` | `cluster_id` |
 | `cluster.secret` | `cluster_secret` |
 | `secrets.bootstraptoken` | `cluster_token` |
-| `secrets.secretboxencryptionsecret` | `secretbox_secret` |
+| `secrets.secretboxencryptionsecret` | `secretbox_key` |
 | `certs.k8s.crt` | `cluster_ca_cert` |
 | `certs.k8s.key` | `cluster_ca_key` |
 | `certs.k8saggregator.crt` | `aggregator_ca_cert` |
@@ -68,30 +68,68 @@ print(f"cluster_endpoint: {c['controlPlane']['endpoint']}")
 EOF
 ```
 
-## Encrypting vault.yml
-
-After filling in real values:
+## Option 4: Automated extraction script
 
 ```bash
-cd ansible
-ansible-vault encrypt group_vars/vault.yml
+python3 << 'PYEOF'
+import yaml
+
+ORIG = "clusterconfig/home-kubernetes-cp-00.yaml"  # any CP node config
+
+with open(ORIG) as f:
+    cfg = list(yaml.safe_load_all(f))[0]
+
+m = cfg["machine"]
+c = cfg["cluster"]
+
+lines = ["# Extracted cluster secrets for PXE-in-a-Box", "---"]
+lines.append('machine_token: "%s"' % m["token"])
+lines.append('machine_ca_cert: "%s"' % m["ca"]["crt"])
+lines.append('machine_ca_key: "%s"' % m["ca"].get("key", ""))
+lines.append('cluster_id: "%s"' % c["id"])
+lines.append('cluster_secret: "%s"' % c["secret"])
+lines.append('cluster_name: "%s"' % c["clusterName"])
+lines.append('cluster_endpoint: "192.168.1.30"')  # set to your VIP
+lines.append('cluster_token: "%s"' % c["token"])
+lines.append('secretbox_key: "%s"' % c.get("secretboxEncryptionSecret", ""))
+lines.append('cluster_ca_cert: "%s"' % c["ca"]["crt"])
+lines.append('cluster_ca_key: "%s"' % c["ca"].get("key", ""))
+agg = c.get("aggregatorCA", {})
+lines.append('aggregator_ca_cert: "%s"' % agg.get("crt", ""))
+lines.append('aggregator_ca_key: "%s"' % agg.get("key", ""))
+sa = c.get("serviceAccount", {})
+lines.append('service_account_key: "%s"' % sa.get("key", ""))
+etcd = c.get("etcd", {}).get("ca", {})
+lines.append('etcd_ca_cert: "%s"' % etcd.get("crt", ""))
+lines.append('etcd_ca_key: "%s"' % etcd.get("key", ""))
+
+with open("secrets.yaml", "w") as f:
+    f.write("\n".join(lines) + "\n")
+
+print("Wrote secrets.yaml")
+PYEOF
 ```
 
-Store your vault password securely:
+## SOPS encryption (optional)
+
+If you want secrets encrypted at rest:
 
 ```bash
-echo "your-vault-password" > ~/.vault_pass
-chmod 600 ~/.vault_pass
+# Generate an age key
+age-keygen -o config/age.key
+
+# Encrypt secrets
+sops --encrypt --age $(grep -oP 'age1.*' config/age.key) \
+     --in-place config/secrets.yaml
+mv config/secrets.yaml config/secrets.sops.yaml
 ```
 
-Deploy with:
-```bash
-ansible-playbook site.yml -i inventory.ini --vault-password-file ~/.vault_pass
-```
+The container auto-detects `secrets.sops.yaml` + `age.key` and decrypts
+at startup (requires `sops` binary in the container).
 
 ## Security Notes
 
-- The `vault.yml` file in the repo has placeholder values only
+- The `secrets.yaml` example in the repo has placeholder values only
 - Gitleaks scans every commit for secrets
 - Never commit real certs, keys, or tokens
 - Use network segmentation (isolated VLAN) as your primary security control
