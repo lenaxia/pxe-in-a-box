@@ -1,0 +1,22 @@
+# PXE-in-a-Box docker-compose example
+# Copy and edit for your environment.
+
+services:
+  pxe:
+    image: ghcr.io/lenaxia/pxe-in-a-box:latest
+    container_name: pxe-in-a-box
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+    volumes:
+      # Config volume: machines.yaml, assets.yaml, menu.yaml, dnsmasq.conf,
+      # templates/, secrets.yaml (or secrets.sops.yaml + age.key), static/
+      - ./config:/config
+      # Assets volume: downloaded kernels/initramfs, rendered configs, boot.ipxe
+      # Persists across container restarts
+      - ./assets:/assets
+    environment:
+      - LOG_LEVEL=info
+    # Override the matchbox address/port if needed
+    # command: ["--addr", "192.168.1.100", "--port", "8081"]

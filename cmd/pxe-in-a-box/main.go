@@ -1,15 +1,15 @@
 // Command pxe-in-a-box is the container entrypoint. It:
-//  1. Validates configuration
-//  2. Downloads missing assets
-//  3. Runs optional cleanup
-//  4. Starts dnsmasq and matchbox via s6-overlay
-//
-// This command runs inside the Docker container on the PXE host.
+//  1. Renders Talos machine configs from templates (pxe-gen)
+//  2. Validates configuration
+//  3. Downloads missing assets
+//  4. Runs optional cleanup
+//  5. Starts dnsmasq and matchbox
 //
 // Usage:
 //
 //	pxe-in-a-box [--config-dir /config] [--assets-dir /assets] [--skip-download]
 //	             [--cleanup] [--dry-run] [--dump-state]
+//	             [--addr 192.168.1.100] [--port 8081]
 package main
 
 import (
@@ -30,7 +30,10 @@ func main() {
 	var (
 		configDir    string
 		assetsDir    string
+		addr         string
+		port         int
 		skipDownload bool
+		skipRender   bool
 		cleanupFlag  bool
 		dryRun       bool
 		dumpState    bool
@@ -39,7 +42,10 @@ func main() {
 
 	flag.StringVar(&configDir, "config-dir", "/config", "configuration directory")
 	flag.StringVar(&assetsDir, "assets-dir", "/assets", "assets directory")
+	flag.StringVar(&addr, "addr", "192.168.1.100", "matchbox HTTP address (for generated URLs)")
+	flag.IntVar(&port, "port", 8081, "matchbox HTTP port")
 	flag.BoolVar(&skipDownload, "skip-download", false, "skip asset download phase")
+	flag.BoolVar(&skipRender, "skip-render", false, "skip template rendering phase")
 	flag.BoolVar(&cleanupFlag, "cleanup", false, "force cleanup of orphaned assets")
 	flag.BoolVar(&dryRun, "dry-run", false, "dry-run mode: log actions without making changes")
 	flag.BoolVar(&dumpState, "dump-state", false, "print current state (groups, profiles, assets) and exit")
@@ -52,23 +58,32 @@ func main() {
 		return
 	}
 
-	if err := run(configDir, assetsDir, skipDownload, cleanupFlag, dryRun); err != nil {
+	if err := run(configDir, assetsDir, addr, port, skipDownload, skipRender, cleanupFlag, dryRun); err != nil {
 		log.Fatalf("pxe-in-a-box: %v", err)
 	}
 }
 
-func run(configDir, assetsDir string, skipDownload, cleanupFlag, dryRun bool) error {
+func run(configDir, assetsDir, addr string, port int, skipDownload, skipRender, cleanupFlag, dryRun bool) error {
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 
-	// Phase 1: Load and validate config
-	_, assets, _, err := loadAndValidate(configDir)
-	if err != nil {
-		return err
+	// Phase 1: Render templates and generate matchbox configs
+	if !skipRender {
+		logger.Println("phase 1: rendering templates and generating configs")
+		if err := runPXEGen(configDir, assetsDir, addr, port); err != nil {
+			return fmt.Errorf("phase 1: %w", err)
+		}
+	} else {
+		logger.Println("phase 1: skipping rendering (--skip-render)")
 	}
 
 	// Phase 2: Download missing assets
 	if !skipDownload {
 		logger.Println("phase 2: downloading assets")
+		_, assets, err := loadConfigs(configDir)
+		if err != nil {
+			return err
+		}
+
 		dl := &downloader.Downloader{
 			AssetsDir:  assetsDir,
 			Client:     downloader.DefaultClient(),
@@ -94,16 +109,20 @@ func run(configDir, assetsDir string, skipDownload, cleanupFlag, dryRun bool) er
 	}
 
 	// Phase 3: Optional cleanup
-	if cleanup.ShouldCleanup(assets, cleanupFlag) && !dryRun {
-		logger.Println("phase 3: cleaning up orphaned assets")
-		cl := &cleanup.Cleaner{
-			AssetsDir: assetsDir,
-			Log:       logger,
+	if !dryRun {
+		_, assets, _ := loadConfigs(configDir)
+		if cleanup.ShouldCleanup(assets, cleanupFlag) {
+			logger.Println("phase 3: cleaning up orphaned assets")
+			cl := &cleanup.Cleaner{
+				AssetsDir: assetsDir,
+				Log:       logger,
+			}
+			results := cl.Run(assets)
+			logger.Printf("cleanup: removed %d orphaned directories", len(results))
 		}
-		results := cl.Run(assets)
-		logger.Printf("cleanup: removed %d orphaned directories", len(results))
-	} else if dryRun && cleanupFlag {
+	} else if cleanupFlag {
 		logger.Println("phase 3: cleanup dry-run")
+		_, assets, _ := loadConfigs(configDir)
 		cl := &cleanup.Cleaner{
 			AssetsDir: assetsDir,
 			Log:       logger,
@@ -121,39 +140,37 @@ func run(configDir, assetsDir string, skipDownload, cleanupFlag, dryRun bool) er
 	return nil
 }
 
-func loadAndValidate(configDir string) (*config.MachinesConfig, *config.AssetsConfig, *config.MenuConfig, error) {
+// runPXEGen invokes pxe-gen to render templates and generate matchbox configs.
+func runPXEGen(configDir, assetsDir, addr string, port int) error {
+	cmd := exec.Command("pxe-gen",
+		"--config-dir", configDir,
+		"--assets-dir", assetsDir,
+		"--addr", addr,
+		"--port", fmt.Sprintf("%d", port),
+	)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func loadConfigs(configDir string) (*config.MachinesConfig, *config.AssetsConfig, error) {
 	machinesPath := fmt.Sprintf("%s/machines.yaml", configDir)
 	assetsPath := fmt.Sprintf("%s/assets.yaml", configDir)
-	menuPath := fmt.Sprintf("%s/menu.yaml", configDir)
 
 	machines, err := config.LoadMachines(machinesPath)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("loading machines: %w", err)
+		return nil, nil, err
 	}
 
 	assets, err := config.LoadAssets(assetsPath)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("loading assets: %w", err)
+		return nil, nil, err
 	}
 
-	menu, err := config.LoadMenu(menuPath)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("loading menu: %w", err)
-	}
-
-	fc := &config.FullConfig{Machines: machines, Assets: assets, Menu: menu}
-	if err := config.Validate(fc); err != nil {
-		return nil, nil, nil, fmt.Errorf("validation:\n%w", err)
-	}
-
-	return machines, assets, menu, nil
+	return machines, assets, nil
 }
 
-// startServices starts dnsmasq and matchbox as child processes and
-// waits for them. This is used when s6-overlay is not available.
-// In the Docker container, s6-overlay manages these processes instead.
 func startServices(configDir, assetsDir string) error {
-	// Start dnsmasq
 	dnsmasq := exec.Command("dnsmasq", "--no-daemon", "--conf-file="+configDir+"/dnsmasq.conf")
 	dnsmasq.Stdout = os.Stdout
 	dnsmasq.Stderr = os.Stderr
@@ -161,32 +178,30 @@ func startServices(configDir, assetsDir string) error {
 		return fmt.Errorf("starting dnsmasq: %w", err)
 	}
 
-	// Start matchbox
-	matchbox := exec.Command("matchbox",
+	mb := exec.Command("matchbox",
 		"-address", "0.0.0.0:8081",
 		"-data-path", configDir,
 		"-assets-path", assetsDir,
 		"-log-level", "info",
 	)
-	matchbox.Stdout = os.Stdout
-	matchbox.Stderr = os.Stderr
-	if err := matchbox.Start(); err != nil {
+	mb.Stdout = os.Stdout
+	mb.Stderr = os.Stderr
+	if err := mb.Start(); err != nil {
 		return fmt.Errorf("starting matchbox: %w", err)
 	}
 
-	// Wait for signal
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
 	doneCh := make(chan error, 2)
 	go func() { doneCh <- dnsmasq.Wait() }()
-	go func() { doneCh <- matchbox.Wait() }()
+	go func() { doneCh <- mb.Wait() }()
 
 	select {
 	case sig := <-sigCh:
 		log.Printf("received signal %v, shutting down", sig)
 		dnsmasq.Process.Signal(syscall.SIGTERM)
-		matchbox.Process.Signal(syscall.SIGTERM)
+		mb.Process.Signal(syscall.SIGTERM)
 		return nil
 	case err := <-doneCh:
 		if err != nil {
@@ -199,7 +214,6 @@ func startServices(configDir, assetsDir string) error {
 func dumpCurrentState(configDir, assetsDir string) {
 	fmt.Printf("=== PXE-in-a-Box State ===\n\n")
 
-	// List groups
 	groupsDir := configDir + "/groups"
 	fmt.Printf("Groups (%s):\n", groupsDir)
 	if entries, err := os.ReadDir(groupsDir); err == nil {
@@ -210,7 +224,6 @@ func dumpCurrentState(configDir, assetsDir string) {
 		fmt.Printf("  (none or directory not found)\n")
 	}
 
-	// List profiles
 	profilesDir := configDir + "/profiles"
 	fmt.Printf("\nProfiles (%s):\n", profilesDir)
 	if entries, err := os.ReadDir(profilesDir); err == nil {
@@ -221,7 +234,6 @@ func dumpCurrentState(configDir, assetsDir string) {
 		fmt.Printf("  (none or directory not found)\n")
 	}
 
-	// List assets
 	fmt.Printf("\nAssets (%s):\n", assetsDir)
 	if entries, err := os.ReadDir(assetsDir); err == nil {
 		for _, e := range entries {

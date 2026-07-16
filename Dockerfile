@@ -63,6 +63,7 @@ COPY --from=builder /pxe-gen /usr/local/bin/pxe-gen
 COPY --from=builder /pxe-in-a-box /usr/local/bin/pxe-in-a-box
 COPY --from=matchbox /matchbox /usr/local/bin/matchbox
 COPY --from=ipxe /tftpboot/ /tftpboot/
+COPY templates/ /default-templates/
 
 VOLUME ["/config", "/assets"]
 
