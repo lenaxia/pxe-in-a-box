@@ -138,7 +138,7 @@ func resolveDebian(a config.DebianAsset) AssetSpec {
 
 func resolveArch(a config.ArchAsset) AssetSpec {
 	baseDir := fmt.Sprintf("/assets/%s/%s", a.ID, a.Arch)
-	base := "https://mirror.archlinux.org/iso/latest"
+	base := "https://geo.mirror.pkgbuild.com/iso/latest"
 
 	return AssetSpec{
 		ID:      a.ID,
