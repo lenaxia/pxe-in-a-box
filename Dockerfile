@@ -18,7 +18,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -ldflags='-s -w' -o /pxe-in-a-box ./cmd/pxe-in-a-box
 
 # ── Matchbox stage: download per-arch binary ─────────────────────────
-FROM --platform=$BUILDPLATFORM alpine:3.20 AS matchbox
+FROM --platform=$BUILDPLATFORM alpine:3.24 AS matchbox
 
 ARG TARGETARCH
 ARG MATCHBOX_VERSION=v0.11.0
@@ -37,7 +37,7 @@ RUN apk add --no-cache curl tar && \
     chmod +x /matchbox
 
 # ── iPXE stage: download chainload binaries ──────────────────────────
-FROM --platform=$BUILDPLATFORM alpine:3.20 AS ipxe
+FROM --platform=$BUILDPLATFORM alpine:3.24 AS ipxe
 
 RUN apk add --no-cache curl && \
     mkdir -p /tftpboot && \
@@ -47,7 +47,7 @@ RUN apk add --no-cache curl && \
       "http://boot.ipxe.org/ipxe.efi"
 
 # ── Runtime stage ────────────────────────────────────────────────────
-FROM alpine:3.20
+FROM alpine:3.24
 
 LABEL org.opencontainers.image.title="PXE-in-a-Box"
 LABEL org.opencontainers.image.source="https://github.com/lenaxia/pxe-in-a-box"
