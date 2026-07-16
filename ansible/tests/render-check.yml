@@ -1,0 +1,221 @@
+---
+# render-check.yml — Renders templates with real cluster data and
+# diffs against the actual talhelper-rendered configs.
+# Run from: /home/ubuntu/workspace/docker/pxe-in-a-box/ansible/
+
+- name: Render and compare templates
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars_files:
+    - /tmp/pxe-render-test/real-secrets.yml
+
+  vars:
+    output_dir: /tmp/pxe-render-test/output
+    cluster_config_dir: /home/ubuntu/workspace/talos-ops-prod/kubernetes/bootstrap/talos/clusterconfig
+
+  tasks:
+    - name: Create output directory
+      file:
+        path: "{{ output_dir }}"
+        state: directory
+
+    # ── Render controlplane for cp-00 ────────────────────────────────
+
+    - name: Render controlplane template for cp-00
+      template:
+        src: "{{ playbook_dir }}/../templates/talos/controlplane.yaml.j2"
+        dest: "{{ output_dir }}/cp-00-rendered.yaml"
+        mode: "0644"
+      vars:
+        hostname: cp-00
+        node_ip: "192.168.3.10"
+        install_disk: /dev/nvme0n1
+        installer_image: "factory.talos.dev/metal-installer/36cd6536eaec8ba802be2d38974108359069cedba8857302f69792b26b87c010:v1.12.4"
+
+    - name: Read rendered controlplane
+      set_fact:
+        rendered_cp: "{{ lookup('file', output_dir + '/cp-00-rendered.yaml') }}"
+
+    - name: Read original controlplane
+      set_fact:
+        original_cp: "{{ lookup('file', cluster_config_dir + '/home-kubernetes-cp-00.yaml') }}"
+
+    - name: Compare controlplane line counts
+      assert:
+        that: "rendered_cp.split('\n') | length >= original_cp.split('\n') | length - 30"
+        fail_msg: >
+          Rendered CP has {{ rendered_cp.split('\n') | length }} lines,
+          original has {{ original_cp.split('\n') | length }}.
+          Expected them to be close.
+
+    - name: Verify machine type
+      assert:
+        that: "'type: controlplane' in rendered_cp"
+        fail_msg: "Missing type: controlplane"
+
+    - name: Verify hostname
+      assert:
+        that: "'hostname: cp-00' in rendered_cp"
+
+    - name: Verify node IP
+      assert:
+        that: "'192.168.3.10/16' in rendered_cp"
+
+    - name: Verify VIP
+      assert:
+        that: "'ip: 192.168.3.30' in rendered_cp"
+
+    - name: Verify cluster endpoint
+      assert:
+        that: "'https://192.168.3.30:6443' in rendered_cp"
+
+    - name: Verify install disk
+      assert:
+        that: "'disk: /dev/nvme0n1' in rendered_cp"
+
+    - name: Verify installer image
+      assert:
+        that: "'36cd6536eaec8ba802be2d38974108359069cedba8857302f69792b26b87c010' in rendered_cp"
+
+    - name: Verify machine token present
+      assert:
+        that: "'x92oi3.2tvo5wdebqscawii' in rendered_cp"
+
+    - name: Verify cluster token present
+      assert:
+        that: "'m1akoo.tu7ho7ojt6aec13j' in rendered_cp"
+
+    - name: Verify machine CA cert present
+      assert:
+        that: "'LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t' in rendered_cp"
+
+    - name: Verify machine CA key present (controlplane only)
+      assert:
+        that: "'LS0tLS1CRUdJTiBFRDI1NTE5IFBSSVZBVEUgS0VZLS0tLS0' in rendered_cp"
+
+    - name: Verify cluster CA key present (controlplane only)
+      assert:
+        that: "'LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0t' in rendered_cp"
+
+    - name: Verify etcd section present
+      assert:
+        that: "'etcd:' in rendered_cp"
+
+    - name: Verify CNI disabled (Cilium)
+      assert:
+        that: "'name: none' in rendered_cp"
+
+    - name: Verify kubePrism
+      assert:
+        that: "'port: 7445' in rendered_cp"
+
+    - name: Verify kubernetesTalosAPIAccess
+      assert:
+        that: "'kubernetesTalosAPIAccess' in rendered_cp"
+
+    # ── Render worker for worker-01 ──────────────────────────────────
+
+    - name: Render worker template for worker-01
+      template:
+        src: "{{ playbook_dir }}/../templates/talos/worker.yaml.j2"
+        dest: "{{ output_dir }}/worker-01-rendered.yaml"
+        mode: "0644"
+      vars:
+        hostname: worker-01
+        node_ip: "192.168.3.21"
+        install_disk_selector: "naa.5002538e4019fdec"
+        installer_image: "factory.talos.dev/metal-installer/0a87e2502b112e807c2dd3f91591fe372f3771188424e234a4283398297c2a33:v1.12.4"
+        wipe_disk: true
+
+    - name: Read rendered worker
+      set_fact:
+        rendered_worker: "{{ lookup('file', output_dir + '/worker-01-rendered.yaml') }}"
+
+    - name: Verify worker type
+      assert:
+        that: "'type: worker' in rendered_worker"
+
+    - name: Verify worker hostname
+      assert:
+        that: "'hostname: worker-01' in rendered_worker"
+
+    - name: Verify worker node IP
+      assert:
+        that: "'192.168.3.21/16' in rendered_worker"
+
+    - name: Verify worker disk selector
+      assert:
+        that: "'naa.5002538e4019fdec' in rendered_worker"
+
+    - name: Verify worker NO VIP (workers don't have VIP)
+      assert:
+        that: "'vip:' not in rendered_worker"
+
+    - name: Verify worker NO CA private key
+      assert:
+        that: "'LS0tLS1CRUdJTiBFRDI1NTE5' not in rendered_worker or rendered_worker.count('LS0tLS1CRUdJTiBFRDI1NTE5') == 0"
+
+    - name: Verify worker longhorn mount
+      assert:
+        that: "'/var/mnt/longhorn' in rendered_worker"
+
+    - name: Verify worker openebs mount
+      assert:
+        that: "'/var/openebs/local' in rendered_worker"
+
+    - name: Verify worker UserVolumeConfig
+      assert:
+        that: "'UserVolumeConfig' in rendered_worker"
+
+    - name: Verify worker NO GPU sections (default)
+      assert:
+        that: "'nvidia' not in rendered_worker"
+
+    - name: Verify worker NO kernel modules (default)
+      assert:
+        that: "'kernel:' not in rendered_worker or 'modules:' not in rendered_worker"
+
+    # ── Render worker with GPU flag ──────────────────────────────────
+
+    - name: Render worker template for GPU node
+      template:
+        src: "{{ playbook_dir }}/../templates/talos/worker.yaml.j2"
+        dest: "{{ output_dir }}/worker-gpu-rendered.yaml"
+        mode: "0644"
+      vars:
+        hostname: worker-gpu-test
+        node_ip: "192.168.3.99"
+        is_gpu: true
+
+    - name: Read rendered GPU worker
+      set_fact:
+        rendered_gpu: "{{ lookup('file', output_dir + '/worker-gpu-rendered.yaml') }}"
+
+    - name: Verify GPU worker has nvidia runtime
+      assert:
+        that: "'default_runtime_name = \"nvidia\"' in rendered_gpu"
+
+    - name: Verify GPU worker has nvidia kernel modules
+      assert:
+        that: "'name: nvidia' in rendered_gpu"
+
+    - name: Verify GPU worker has bpf_jit_harden
+      assert:
+        that: "'bpf_jit_harden' in rendered_gpu"
+
+    - name: Verify GPU worker does NOT have standard containerd config
+      assert:
+        that: "'enable_unprivileged_ports' not in rendered_gpu"
+
+    # ── Summary ──────────────────────────────────────────────────────
+
+    - name: Render verification passed
+      debug:
+        msg: |
+          Template render verification PASSED.
+          Controlplane: {{ rendered_cp.split('\n') | length }} lines (original: {{ original_cp.split('\n') | length }})
+          Worker: {{ rendered_worker.split('\n') | length }} lines
+          GPU Worker: {{ rendered_gpu.split('\n') | length }} lines
+          All assertions passed.

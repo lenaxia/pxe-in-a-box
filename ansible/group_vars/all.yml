@@ -11,13 +11,13 @@ pxe_config_dir: /opt/pxe/config
 pxe_assets_dir: /opt/pxe/assets
 
 # Matchbox HTTP endpoint (the PXE host's IP and port)
-# This IP must be static (DHCP reservation on UDM Pro)
-matchbox_addr: 192.168.2.103
+# This IP must be static (DHCP reservation on your router)
+matchbox_addr: 192.168.1.100
 matchbox_port: "8081"
 
 # dnsmasq proxy DHCP range (must cover the network where PXE clients live)
-dnsmasq_proxy_range: 192.168.0.1
-dnsmasq_proxy_netmask: 255.255.0.0
+dnsmasq_proxy_range: 192.168.1.1
+dnsmasq_proxy_netmask: 255.255.255.0
 
 # Boot menu settings
 menu_timeout: 10

@@ -1,0 +1,51 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.0
+    hooks:
+      - id: gitleaks
+        name: Detect hardcoded secrets
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+        exclude: ^(ansible/tests/rendered_output/|.*\.j2$)
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: go-fmt
+        name: Go fmt
+        entry: gofmt -l -w
+        language: system
+        files: \.go$
+        pass_filenames: true
+
+      - id: go-vet
+        name: Go vet
+        entry: bash -c 'go vet ./...'
+        language: system
+        files: \.go$
+        pass_filenames: false
+
+      - id: go-mod-tidy
+        name: Go mod tidy
+        entry: bash -c 'go mod tidy && git diff --exit-code go.mod go.sum'
+        language: system
+        files: go\.(mod|sum)$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: go-test
+        name: Go unit tests
+        entry: go test ./...
+        language: system
+        files: \.go$
+        pass_filenames: false
+        stages: [pre-push]

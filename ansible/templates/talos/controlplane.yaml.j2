@@ -1,46 +1,214 @@
-# Talos control plane machine config template.
-# Rendered by Ansible with Vault-decrypted secrets.
-#
-# Variables (provided by Ansible from machines.yaml group/machine vars + Vault):
-#   {{ cluster_name }}         — cluster name
-#   {{ cluster_endpoint }}     — control plane endpoint (VIP or LB)
-#   {{ kubernetes_version }}   — e.g., v1.32.0
-#   {{ hostname }}             — machine hostname
-#   {{ node_ip }}              — machine IP (optional, for static assignment)
-#   {{ talos_ca_cert }}        — cluster CA certificate (from Vault)
-#   {{ talos_join_token }}     — trustd join token (from Vault)
-#   {{ talos_etcd_ca_cert }}   — etcd CA certificate (from Vault)
+{# Talos controlplane machine config template.
+   Rendered by Ansible with Vault-decrypted secrets.
 
+   Required variables:
+     hostname              — machine hostname (e.g., cp-00)
+     node_ip               — machine IP without CIDR (e.g., 192.168.3.10)
+
+   Required Vault variables:
+     machine_token         — machine join token
+     machine_ca_cert       — machine CA certificate (base64 PEM)
+     machine_ca_key        — machine CA private key (base64) — CP only
+     cluster_id            — cluster ID
+     cluster_secret        — cluster secret
+     cluster_name          — cluster name (e.g., home-kubernetes)
+     cluster_endpoint      — control plane endpoint IP (VIP)
+     cluster_token         — cluster bootstrap token
+     secretbox_secret      — secretbox encryption secret
+     cluster_ca_cert       — cluster CA certificate (base64 PEM)
+     cluster_ca_key        — cluster CA private key (base64) — CP only
+     aggregator_ca_cert    — aggregator CA certificate (base64)
+     aggregator_ca_key     — aggregator CA private key (base64)
+     service_account_key   — service account RSA private key (base64)
+     etcd_ca_cert          — etcd CA certificate (base64)
+     etcd_ca_key           — etcd CA private key (base64)
+
+   Optional per-machine variables:
+     install_disk          — install disk path (default: /dev/nvme0n1)
+     installer_image       — Talos installer image with schematic
+     kubernetes_version    — kubelet/k8s image tag (default: v1.35.2)
+     wipe_disk             — whether to wipe disk on install (default: false)
+     nameservers           — YAML list of DNS servers
+#}
 version: v1alpha1
+debug: false
+persist: true
 machine:
   type: controlplane
-  kubelet:
-    image: ghcr.io/siderolabs/kubelet:{{ kubernetes_version }}
-  network:
-    hostname: {{ hostname }}
-    {% if node_ip is defined and node_ip | length > 0 %}
-    interfaces:
-      - interface: eth0
-        addresses:
-          - {{ node_ip }}/24
-    {% endif %}
+  token: {{ machine_token }}
+  ca:
+    crt: {{ machine_ca_cert }}
+    key: {{ machine_ca_key }}
   certSANs:
     - {{ cluster_endpoint }}
-  ca:
-    crt: "{{ talos_ca_cert }}"
-  # Note: CA key omitted for join configs. Only bootstrap node includes the key.
-  # token: "{{ talos_join_token }}"
+    - 127.0.0.1
+  kubelet:
+    image: ghcr.io/siderolabs/kubelet:{{ kubernetes_version | default('v1.35.2') }}
+    extraArgs:
+      rotate-server-certificates: "true"
+    extraMounts:
+      - destination: /var/openebs/local
+        type: bind
+        source: /var/openebs/local
+        options:
+          - bind
+          - rshared
+          - rw
+    defaultRuntimeSeccompProfileEnabled: true
+    nodeIP:
+      validSubnets:
+        - {{ node_subnet | default('192.168.0.0/16') }}
+    disableManifestsDirectory: true
+  network:
+    hostname: {{ hostname }}
+    interfaces:
+      - interface: eth0
+        bond:
+          deviceSelectors:
+            - physical: true
+        addresses:
+          - {{ node_ip }}/16
+        routes:
+          - network: 0.0.0.0/0
+            gateway: {{ gateway | default('192.168.0.1') }}
+        mtu: {{ mtu | default(1500) }}
+        dhcp: false
+        vip:
+          ip: {{ cluster_endpoint }}
+    nameservers:
+{% for ns in nameservers | default(['192.168.0.2', '192.168.0.5', '192.168.0.6']) %}
+      - {{ ns }}
+{% endfor %}
+    disableSearchDomain: true
+  install:
+{% if install_disk is defined and install_disk | length > 0 %}
+    disk: {{ install_disk }}
+{% elif install_disk_selector is defined and install_disk_selector | length > 0 %}
+    diskSelector:
+      wwid: {{ install_disk_selector }}
+{% endif %}
+    image: {{ installer_image | default('factory.talos.dev/metal-installer/36cd6536eaec8ba802be2d38974108359069cedba8857302f69792b26b87c010:v1.12.4') }}
+    wipe: {{ wipe_disk | default(false) | lower }}
+  files:
+    - content: |-
+        [plugins."io.containerd.grpc.v1.cri"]
+          enable_unprivileged_ports = true
+          enable_unprivileged_icmp = true
+        [plugins."io.containerd.grpc.v1.cri".containerd]
+          discard_unpacked_layers = false
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+          discard_unpacked_layers = false
+      permissions: 0o0
+      path: /etc/cri/conf.d/20-customization.part
+      op: create
+  time:
+    disabled: false
+    servers:
+      - 162.159.200.1
+      - 162.159.200.123
+  sysctls:
+    fs.inotify.max_user_instances: "8192"
+    fs.inotify.max_user_watches: "1048576"
+    net.core.rmem_max: "7500000"
+    net.core.wmem_max: "7500000"
+    vm.nr_hugepages: "1024"
+  features:
+    rbac: true
+    stableHostname: true
+    kubernetesTalosAPIAccess:
+      enabled: true
+      allowedRoles:
+        - os:admin
+      allowedKubernetesNamespaces:
+        - system-upgrade
+    apidCheckExtKeyUsage: true
+    diskQuotaSupport: true
+    kubePrism:
+      enabled: true
+      port: 7445
+    hostDNS:
+      enabled: true
+      forwardKubeDNSToHost: true
+      resolveMemberNames: true
+  nodeLabels:
+    node.kubernetes.io/exclude-from-external-load-balancers: ""
 cluster:
-  clusterName: {{ cluster_name }}
+  id: {{ cluster_id }}
+  secret: {{ cluster_secret }}
   controlPlane:
     endpoint: https://{{ cluster_endpoint }}:6443
+  clusterName: {{ cluster_name }}
   network:
+    cni:
+      name: none
     dnsDomain: cluster.local
     podSubnets:
-      - 10.244.0.0/16
+      - {{ pod_subnet | default('10.69.0.0/16') }}
     serviceSubnets:
-      - 10.96.0.0/12
+      - {{ service_subnet | default('10.96.0.0/16') }}
+  token: {{ cluster_token }}
+  secretboxEncryptionSecret: {{ secretbox_secret }}
+  ca:
+    crt: {{ cluster_ca_cert }}
+    key: {{ cluster_ca_key }}
+  aggregatorCA:
+    crt: {{ aggregator_ca_cert }}
+    key: {{ aggregator_ca_key }}
+  serviceAccount:
+    key: {{ service_account_key }}
+  apiServer:
+    image: registry.k8s.io/kube-apiserver:{{ kubernetes_version | default('v1.35.2') }}
+    extraArgs:
+      feature-gates: AuthorizeNodeWithSelectors=false
+    certSANs:
+      - {{ cluster_endpoint }}
+      - {{ cluster_endpoint }}
+      - 127.0.0.1
+    disablePodSecurityPolicy: true
+    auditPolicy:
+      apiVersion: audit.k8s.io/v1
+      kind: Policy
+      rules:
+        - level: Metadata
+  controllerManager:
+    image: registry.k8s.io/kube-controller-manager:{{ kubernetes_version | default('v1.35.2') }}
+    extraArgs:
+      bind-address: 0.0.0.0
+  proxy:
+    disabled: true
+    image: registry.k8s.io/kube-proxy:{{ kubernetes_version | default('v1.35.2') }}
+  scheduler:
+    image: registry.k8s.io/kube-scheduler:{{ kubernetes_version | default('v1.35.2') }}
+    extraArgs:
+      bind-address: 0.0.0.0
+    config:
+      apiVersion: kubescheduler.config.k8s.io/v1
+      kind: KubeSchedulerConfiguration
+      profiles:
+        - pluginConfig:
+            - args:
+                defaultConstraints:
+                  - maxSkew: 1
+                    topologyKey: kubernetes.io/hostname
+                    whenUnsatisfiable: ScheduleAnyway
+                defaultingType: List
+              name: PodTopologySpread
+          schedulerName: default-scheduler
+  discovery:
+    enabled: true
+    registries:
+      kubernetes:
+        disabled: false
+      service:
+        disabled: true
   etcd:
     ca:
-      crt: "{{ talos_etcd_ca_cert }}"
-    # Note: etcd CA key omitted for join configs.
+      crt: {{ etcd_ca_cert }}
+      key: {{ etcd_ca_key }}
+    extraArgs:
+      listen-metrics-urls: http://0.0.0.0:2381
+    advertisedSubnets:
+      - {{ node_subnet | default('192.168.0.0/16') }}
+  coreDNS:
+    disabled: true
+  allowSchedulingOnControlPlanes: true

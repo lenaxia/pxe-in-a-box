@@ -1,0 +1,25 @@
+title = "PXE-in-a-Box gitleaks config"
+
+[extend]
+# Start with the default rules
+useDefault = true
+
+[[allowlists]]
+description = "Allow Jinja2 template placeholders (variable references, not real values)"
+paths = [
+  '''ansible/templates/.*\.j2$''',
+]
+regexes = [
+  '''\{\{.*\}\}''',
+]
+
+[[allowlists]]
+description = "Allow placeholder values in example/template configs"
+paths = [
+  '''ansible/group_vars/vault\.yml$''',
+  '''examples/.*\.yaml$''',
+]
+regexes = [
+  '''REPLACE_WITH_YOUR_.*''',
+  '''\.\.\.''',  # Truncated placeholder values like "LS0tLS1CRUdJTi..."
+]

@@ -38,5 +38,9 @@ ansible/group_vars/local.yml
 generated/
 *.generated.yaml
 
+# Local test environments (may contain real secrets)
+pxe-live/
+ansible/files/
+
 # Docker build artifacts
 *.tar

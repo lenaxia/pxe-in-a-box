@@ -17,10 +17,10 @@
     test_output_dir: "{{ playbook_dir }}/rendered_output"
 
     # Test variables simulating group_vars/all.yml
-    matchbox_addr: 192.168.2.103
+    matchbox_addr: 192.168.1.100
     matchbox_port: "8081"
-    dnsmasq_proxy_range: 192.168.0.1
-    dnsmasq_proxy_netmask: 255.255.0.0
+    dnsmasq_proxy_range: 192.168.1.1
+    dnsmasq_proxy_netmask: 255.255.255.0
     menu_timeout: 10
     menu_default: talos
 
@@ -89,8 +89,13 @@
 
     - name: Validate dnsmasq.conf has correct iPXE HTTP redirect
       assert:
-        that: "'http://192.168.2.103:8081/assets/boot.ipxe' in dnsmasq_content"
+        that: "'http://192.168.1.100:8081/assets/boot.ipxe' in dnsmasq_content"
         fail_msg: "dnsmasq.conf should redirect iPXE to /assets/boot.ipxe"
+
+    - name: Validate dnsmasq.conf contains proxy DHCP range
+      assert:
+        that: "'dhcp-range=192.168.1.1,proxy,255.255.255.0' in dnsmasq_content"
+        fail_msg: "dnsmasq.conf missing proxy DHCP range"
 
     - name: Validate dnsmasq.conf has BIOS chainload
       assert:

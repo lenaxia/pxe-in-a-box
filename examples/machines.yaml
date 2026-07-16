@@ -1,40 +1,54 @@
-# Machine definitions for PXE-in-a-Box
-# Maps MAC addresses to boot profiles and Talos machine configs.
+# Example machine definitions for PXE-in-a-Box
+# Copy to ansible/files/config/machines.yaml and edit for your environment.
 
 groups:
   - name: controlplane
     profile: talos-v1.10.6
     template: controlplane.yaml.j2
     vars:
-      cluster_name: homelab
-      cluster_endpoint: 192.168.2.10
-      kubernetes_version: v1.32.0
+      install_disk: /dev/nvme0n1
+      # Get your installer image (with schematic) from factory.talos.dev
+      installer_image: factory.talos.dev/metal-installer/REPLACE_WITH_YOUR_SCHEMATIC:v1.12.4
     machines:
-      - mac: 00:e0:4c:68:00:8e
-        hostname: cp00
+      - mac: aa:bb:cc:dd:00:01
+        hostname: cp-00
         vars:
-          node_ip: 192.168.2.11
-      - mac: f4:4d:30:68:a3:b3
-        hostname: cp01
+          node_ip: 192.168.1.10
+      - mac: aa:bb:cc:dd:00:02
+        hostname: cp-01
         vars:
-          node_ip: 192.168.2.12
+          node_ip: 192.168.1.11
+      - mac: aa:bb:cc:dd:00:03
+        hostname: cp-02
+        vars:
+          node_ip: 192.168.1.12
 
   - name: workers
     profile: talos-v1.10.6
     template: worker.yaml.j2
     vars:
-      cluster_name: homelab
-      cluster_endpoint: 192.168.2.10
-      kubernetes_version: v1.32.0
+      installer_image: factory.talos.dev/metal-installer/REPLACE_WITH_YOUR_SCHEMATIC:v1.12.4
     machines:
-      - mac: 00:e0:4c:68:00:a1
-        hostname: worker01
-      - mac: 00:e0:4c:68:00:0e
-        hostname: worker02
+      - mac: aa:bb:cc:dd:00:10
+        hostname: worker-00
+        vars:
+          node_ip: 192.168.1.20
+          install_disk_selector: naa.REPLACE_WITH_DISK_WWID
+      - mac: aa:bb:cc:dd:00:11
+        hostname: worker-01
+        vars:
+          node_ip: 192.168.1.21
+          install_disk_selector: naa.REPLACE_WITH_DISK_WWID
+      - mac: aa:bb:cc:dd:00:12
+        hostname: worker-02
+        vars:
+          node_ip: 192.168.1.22
+          install_disk_selector: naa.REPLACE_WITH_DISK_WWID
 
-# One-off machines with direct config files (no template rendering)
+# Machines too unique to template (different GPU schematics, storage layouts)
+# serve their own pre-rendered config files from static/
 singletons:
-  - mac: b8:ae:ed:73:c3:bc
-    hostname: melfina
-    profile: talos-v1.9.1
-    config: melfina.yaml
+  - mac: aa:bb:cc:dd:00:20
+    hostname: worker-special
+    profile: talos-v1.10.6
+    config: worker-special.yaml
