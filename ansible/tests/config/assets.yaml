@@ -1,7 +1,0 @@
-talos:
-  - id: talos-v1.10.6
-    version: v1.10.6
-    arch: amd64
-  - id: talos-v1.9.1
-    version: v1.9.1
-    arch: amd64

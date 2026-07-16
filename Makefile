@@ -1,4 +1,4 @@
-.PHONY: build test test-unit test-integration test-e2e test-e2e-qemu test-all test-ansible clean lint docker-build download-matchbox
+.PHONY: build test test-unit test-integration test-e2e test-e2e-qemu test-all clean lint docker-build download-matchbox
 
 BINARY_DIR = bin
 MATCHBOX_VERSION = v0.11.0
@@ -66,12 +66,6 @@ download-matchbox:
 build-arm64:
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags='-s -w' -o $(BINARY_DIR)/pxe-gen-arm64 ./cmd/pxe-gen
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags='-s -w' -o $(BINARY_DIR)/pxe-in-a-box-arm64 ./cmd/pxe-in-a-box
-
-# ── Ansible ──────────────────────────────────────────────────────────
-
-test-ansible:
-	cd ansible && ansible-playbook tests/test_templates.yml -i tests/inventory.ini
-	cd ansible && ansible-playbook tests/test_playbook_syntax.yml -i tests/inventory.ini
 
 # ── Clean ────────────────────────────────────────────────────────────
 

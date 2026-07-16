@@ -1,4 +1,0 @@
-version: v1alpha1
-machine:
-  type: worker
-  token: test-static-config
