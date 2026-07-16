@@ -144,10 +144,10 @@ func validateAssets(ve *ValidationError, cfg *AssetsConfig) {
 		}
 
 		if a.Version == "" && a.ImageFactoryHash == "" {
-			ve.add("talos[%d] (%s): either version or image_factory_hash is required", i, a.ID)
+			ve.add("talos[%d] (%s): version is required (image_factory_hash is optional)", i, a.ID)
 		}
-		if a.Version != "" && a.ImageFactoryHash != "" {
-			ve.add("talos[%d] (%s): version and image_factory_hash are mutually exclusive", i, a.ID)
+		if a.Version == "" && a.ImageFactoryHash != "" {
+			ve.add("talos[%d] (%s): image_factory_hash requires version to be set (which Talos version to build)", i, a.ID)
 		}
 		if a.Arch == "" {
 			ve.add("talos[%d] (%s): arch is required", i, a.ID)

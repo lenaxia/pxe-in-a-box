@@ -134,11 +134,13 @@ func TestValidate_MissingProfileInAssets(t *testing.T) {
 }
 
 func TestValidate_TalosVersionAndHashMutuallyExclusive(t *testing.T) {
+	// Having both version + image_factory_hash is now VALID
+	// (IF needs both: hash = schematic, version = Talos release)
 	fc := &FullConfig{
 		Assets: &AssetsConfig{
 			Talos: []TalosAsset{
 				{
-					ID:               "broken",
+					ID:               "valid-if",
 					Version:          "v1.10.6",
 					ImageFactoryHash: "abc123",
 					Arch:             "amd64",
@@ -147,8 +149,26 @@ func TestValidate_TalosVersionAndHashMutuallyExclusive(t *testing.T) {
 		},
 	}
 	err := Validate(fc)
+	if err != nil {
+		t.Fatalf("version + image_factory_hash should be valid together: %v", err)
+	}
+}
+
+func TestValidate_TalosHashWithoutVersion(t *testing.T) {
+	fc := &FullConfig{
+		Assets: &AssetsConfig{
+			Talos: []TalosAsset{
+				{
+					ID:               "broken",
+					ImageFactoryHash: "abc123",
+					Arch:             "amd64",
+				},
+			},
+		},
+	}
+	err := Validate(fc)
 	if err == nil {
-		t.Fatal("expected error for mutually exclusive version and hash")
+		t.Fatal("expected error for image_factory_hash without version")
 	}
 }
 
