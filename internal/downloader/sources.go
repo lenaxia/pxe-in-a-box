@@ -10,7 +10,7 @@ package downloader
 import (
 	"fmt"
 
-	"github.com/homelab/pxe-in-a-box/internal/config"
+	"github.com/lenaxia/pxe-in-a-box/internal/config"
 )
 
 // FileSpec describes a single file to download: its remote URL,

@@ -15,7 +15,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/homelab/pxe-in-a-box/internal/config"
+	"github.com/lenaxia/pxe-in-a-box/internal/config"
 )
 
 // GroupFile is the matchbox-native group JSON structure.

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/homelab/pxe-in-a-box/internal/config"
+	"github.com/lenaxia/pxe-in-a-box/internal/config"
 )
 
 func TestProfileID(t *testing.T) {

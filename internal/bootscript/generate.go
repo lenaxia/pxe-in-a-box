@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/homelab/pxe-in-a-box/internal/config"
-	"github.com/homelab/pxe-in-a-box/internal/matchbox"
+	"github.com/lenaxia/pxe-in-a-box/internal/config"
+	"github.com/lenaxia/pxe-in-a-box/internal/matchbox"
 )
 
 // Endpoint describes the matchbox HTTP server address.

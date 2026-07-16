@@ -21,9 +21,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/homelab/pxe-in-a-box/internal/cleanup"
-	"github.com/homelab/pxe-in-a-box/internal/config"
-	"github.com/homelab/pxe-in-a-box/internal/downloader"
+	"github.com/lenaxia/pxe-in-a-box/internal/cleanup"
+	"github.com/lenaxia/pxe-in-a-box/internal/config"
+	"github.com/lenaxia/pxe-in-a-box/internal/downloader"
 )
 
 func main() {

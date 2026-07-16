@@ -1,4 +1,4 @@
-module github.com/homelab/pxe-in-a-box
+module github.com/lenaxia/pxe-in-a-box
 
 go 1.25
 

@@ -17,9 +17,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/homelab/pxe-in-a-box/internal/bootscript"
-	"github.com/homelab/pxe-in-a-box/internal/config"
-	"github.com/homelab/pxe-in-a-box/internal/matchbox"
+	"github.com/lenaxia/pxe-in-a-box/internal/bootscript"
+	"github.com/lenaxia/pxe-in-a-box/internal/config"
+	"github.com/lenaxia/pxe-in-a-box/internal/matchbox"
 )
 
 func main() {

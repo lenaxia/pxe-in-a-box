@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/homelab/pxe-in-a-box/internal/config"
+	"github.com/lenaxia/pxe-in-a-box/internal/config"
 )
 
 func TestGenerate_ValidMenu(t *testing.T) {

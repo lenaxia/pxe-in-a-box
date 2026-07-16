@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+  unit-test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run unit tests with coverage
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+      - name: Upload coverage
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-unit
+          path: coverage.out
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run integration tests
+        run: go test -tags=integration -race -v ./internal/e2e/...
+
+  e2e-test:
+    name: E2E Tests (matchbox + QEMU)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install matchbox
+        run: |
+          curl -sL "https://github.com/poseidon/matchbox/releases/download/v0.11.0/matchbox-v0.11.0-linux-amd64.tar.gz" \
+            | sudo tar xz --strip-components=1 -C /usr/local/bin matchbox-v0.11.0-linux-amd64/matchbox
+          matchbox -version
+
+      - name: Install QEMU
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86
+          qemu-system-x86_64 --version | head -1
+
+      - name: Run HTTP e2e tests
+        run: go test -tags=e2e -v ./test/e2e/... -run '^TestE2E_[^Q]' -timeout 60s
+
+      - name: Run QEMU e2e tests
+        run: go test -tags=e2e -v ./test/e2e/... -run '^TestE2E_QEMU' -timeout 120s
+
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: linux-amd64
+            goos: linux
+            goarch: amd64
+          - target: linux-arm64
+            goos: linux
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build binaries
+        run: |
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+            go build -ldflags='-s -w' -o pxe-gen ./cmd/pxe-gen
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+            go build -ldflags='-s -w' -o pxe-in-a-box ./cmd/pxe-in-a-box
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.target }}
+          path: |
+            pxe-gen
+            pxe-in-a-box
+
+  docker:
+    name: Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image (amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: pxe-in-a-box:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify Go binaries
+        run: |
+          docker run --rm --entrypoint sh pxe-in-a-box:ci -c \
+            "pxe-gen --help 2>&1 | head -1 || true; pxe-in-a-box --help 2>&1 | head -1 || true"
+
+      - name: Verify matchbox
+        run: docker run --rm --entrypoint sh pxe-in-a-box:ci -c "matchbox -version"
+
+      - name: Verify dnsmasq
+        run: docker run --rm --entrypoint sh pxe-in-a-box:ci -c "dnsmasq --version | head -1"
+
+      - name: Verify iPXE binaries exist
+        run: |
+          docker run --rm --entrypoint sh pxe-in-a-box:ci -c \
+            "ls -la /tftpboot/undionly.kpxe /tftpboot/ipxe.efi"
+          docker run --rm --entrypoint sh pxe-in-a-box:ci -c \
+            "test -s /tftpboot/undionly.kpxe && test -s /tftpboot/ipxe.efi && echo OK"
+
+      - name: Verify entrypoint runs
+        run: docker run --rm pxe-in-a-box:ci --dump-state || true

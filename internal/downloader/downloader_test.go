@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/homelab/pxe-in-a-box/internal/config"
+	"github.com/lenaxia/pxe-in-a-box/internal/config"
 )
 
 // newTestDownloader creates a Downloader writing to a temp dir,
