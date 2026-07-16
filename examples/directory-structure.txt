@@ -1,0 +1,40 @@
+# Complete directory structure for PXE-in-a-Box
+#
+# This file documents every file and directory the system expects.
+# Copy the files from examples/ and fill in your values.
+
+config/                             # ── Mounted as /config (read-write) ──
+├── machines.yaml                   # MAC address → profile + template mapping
+├── assets.yaml                     # Which kernels/initramfs to download
+├── menu.yaml                       # Boot menu for unknown MACs
+├── dnsmasq.conf                    # Proxy DHCP + TFTP configuration
+├── secrets.yaml                    # Cluster secrets (NEVER commit to git)
+│                                   #   OR: secrets.sops.yaml + age.key
+│                                   #   OR: omit entirely (use static/ only)
+├── templates/                      # Go text/template files (optional)
+│   ├── controlplane.yaml.tmpl      #   Baked into image if not provided
+│   └── worker.yaml.tmpl            #   Baked into image if not provided
+├── static/                         # Pre-rendered configs for singletons
+│   └── worker-special.yaml         #   e.g. from talhelper genconfig
+├── groups/                         # AUTO-GENERATED at startup (matchbox)
+│   └── *.json                      #   Don't edit — overwritten on restart
+└── profiles/                       # AUTO-GENERATED at startup (matchbox)
+    └── *.json                      #   Don't edit — overwritten on restart
+
+assets/                             # ── Mounted as /assets (read-write) ──
+├── boot.ipxe                       # AUTO-GENERATED at startup
+├── rendered/                       # AUTO-GENERATED from templates
+│   ├── cp-00.yaml                  #   Rendered machine configs
+│   └── worker-01.yaml
+├── static/                         # Copied from config/static/
+│   └── worker-special.yaml
+├── talos-v1.10.6/amd64/            # Downloaded by container
+│   ├── vmlinuz                     #   ~20MB kernel
+│   └── initramfs.xz                #   ~80MB initramfs
+└── talos-nvidia/amd64/             # Image Factory custom build
+    ├── vmlinuz                     #   ~20MB kernel with extensions
+    └── initramfs.xz                #   ~300MB+ initramfs with drivers
+
+tftpboot/                           # ── Baked into Docker image ──
+├── undionly.kpxe                   # BIOS iPXE chainload binary
+└── ipxe.efi                        # UEFI iPXE chainload binary
