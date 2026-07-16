@@ -217,9 +217,10 @@ dhcp-userclass=set:ipxe,iPXE
 
 # ── Stage 1: Raw PXE clients get iPXE binary via TFTP ──
 # tag:#ipxe means "NOT tagged as ipxe" (raw PXE client, first boot)
-# x86PC = BIOS clients. UEFI support is deferred to a future phase.
+# x86PC = BIOS clients, x86-64_EFI = UEFI clients
 
 pxe-service=tag:#ipxe,x86PC,"PXE chainload to iPXE",undionly.kpxe
+pxe-service=tag:#ipxe,x86-64_EFI,"PXE chainload to iPXE",ipxe.efi
 
 # ── Stage 2: iPXE clients get HTTP boot script ──
 # Once iPXE is loaded, it re-DHCPs with user-class "iPXE".
@@ -227,6 +228,7 @@ pxe-service=tag:#ipxe,x86PC,"PXE chainload to iPXE",undionly.kpxe
 # CHANGED: /boot.ipxe → /assets/boot.ipxe (custom script with menu fallback)
 
 pxe-service=tag:ipxe,x86PC,"iPXE",http://192.168.2.103:8081/assets/boot.ipxe
+pxe-service=tag:ipxe,x86-64_EFI,"iPXE",http://192.168.2.103:8081/assets/boot.ipxe
 
 # Logging
 log-queries
@@ -249,17 +251,21 @@ log-dhcp
 | TFTP server / next-server | `192.168.2.103` | DHCP options / network config |
 | DHCP reservation for PXE host | `192.168.2.103` (static lease for PXE host MAC) | DHCP reservations |
 
-#### BIOS-Only Scope (UEFI Deferred)
+#### BIOS and UEFI Support
 
-**Current phase: BIOS only.** The system handles x86 BIOS PXE clients. This is what your existing setup already does, and it's the proven path.
+The system handles both BIOS and UEFI PXE clients simultaneously. dnsmasq's
+`pxe-service` directives use CSA (Client System Architecture) types to serve
+the correct iPXE binary per architecture.
 
-**UEFI is deferred.** The `ipxe.efi` binary is still baked into the image (it's small, ~1MB), but dnsmasq is not configured to serve it. Adding UEFI support later requires:
-1. Adding `pxe-service=tag:#ipxe,x86-64_EFI,"PXE chainload to iPXE",ipxe.efi` for stage 1
-2. Adding `pxe-service=tag:ipxe,x86-64_EFI,"iPXE",http://192.168.2.103:8081/assets/boot.ipxe` for stage 2
-3. Testing that UEFI firmware properly sends the iPXE user-class on re-DHCP (some UEFI implementations may not, which would cause a chainload loop)
-4. Optionally testing with OVMF firmware in QEMU
+| Client State | CSA Type | What dnsmasq serves |
+|---|---|---|
+| Raw PXE, BIOS | `x86PC` | `undionly.kpxe` via TFTP |
+| Raw PXE, UEFI | `x86-64_EFI` | `ipxe.efi` via TFTP |
+| iPXE, BIOS | `x86PC` | HTTP boot script URL |
+| iPXE, UEFI | `x86-64_EFI` | HTTP boot script URL |
 
-**Risk eliminated by deferring:** The `dhcp-userclass` + UEFI interaction was a medium-confidence item. By deferring UEFI, we remove that risk from the initial implementation. BIOS PXE + iPXE chainload is well-understood and already working in your environment.
+After iPXE loads, both BIOS and UEFI clients fetch the same HTTP boot script
+and follow the same path. The architecture divergence ends at stage 1.
 
 ### 2.2 matchbox
 
@@ -659,7 +665,7 @@ Downloaded at image build time from `http://boot.ipxe.org/` or built from source
 | File | Architecture | Purpose | Status |
 |------|-------------|---------|--------|
 | `undionly.kpxe` | x86_64 | BIOS PXE chainload to iPXE | **Active** — used by dnsmasq config |
-| `ipxe.efi` | x86_64 | UEFI PXE chainload to iPXE | **Baked in** — not configured in dnsmasq yet, ready for UEFI phase |
+| `ipxe.efi` | x86_64 | UEFI PXE chainload to iPXE | **Active** — used by UEFI clients |
 
 ### 4.4 Multi-Arch Build
 
@@ -903,7 +909,7 @@ ansible-playbook site.yml --ask-vault-pass
 ```
 /tftpboot/
 ├── undionly.kpxe                 # BIOS iPXE chainload (x86_64) — ACTIVE
-└── ipxe.efi                      # UEFI iPXE chainload (x86_64) — baked in, not yet configured
+└── ipxe.efi                      # UEFI iPXE chainload (x86_64) — ACTIVE
 ```
 
 ---
@@ -1056,14 +1062,13 @@ choose --default talos --timeout 5000 target && goto ${target}
 
 **Status:** Acceptable for homelab. Not a blocker.
 
-### 10.5 UEFI Support (Deferred)
+### 10.5 UEFI iPXE User-Class Behavior
 
-**Scope:** UEFI PXE boot is deferred to a future phase. The `ipxe.efi` binary is baked into the image, but dnsmasq is not configured to serve it.
+**Status:** Supported. Both BIOS and UEFI chainload paths are configured in dnsmasq.
 
-**To enable UEFI later:**
-1. Add `pxe-service=tag:#ipxe,x86-64_EFI,"PXE chainload to iPXE",ipxe.efi` to dnsmasq.conf
-2. Add `pxe-service=tag:ipxe,x86-64_EFI,"iPXE",http://...` to dnsmasq.conf
-3. Test that UEFI firmware sends the iPXE user-class on re-DHCP (some UEFI implementations may not, causing a chainload loop)
-4. Test with OVMF firmware in QEMU before real hardware
-
-**Status:** Deferred. Not a blocker for BIOS-only deployment.
+**Note:** Most UEFI firmware correctly sends the iPXE user-class on re-DHCP
+after loading `ipxe.efi`, which allows dnsmasq to distinguish stage 1 (TFTP)
+from stage 2 (HTTP). Some older or buggy UEFI implementations may not send
+the user-class, which would cause a chainload loop (getting `ipxe.efi` via
+TFTP repeatedly instead of the HTTP URL). This is rare with modern firmware
+but worth noting if a UEFI machine loops instead of booting.

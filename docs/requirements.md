@@ -31,7 +31,7 @@ A machine whose MAC address is defined in `machines.yaml` boots directly to its 
 
 **Full boot sequence:**
 1. Machine PXE boots → UDM Pro DHCP server assigns IP and tells client TFTP server is at 192.168.2.103
-2. dnsmasq proxy DHCP responds with TFTP iPXE binary (`undionly.kpxe`)
+2. dnsmasq proxy DHCP responds with TFTP iPXE binary (`undionly.kpxe` for BIOS, `ipxe.efi` for UEFI)
 3. Machine loads iPXE via TFTP → iPXE fetches `http://192.168.2.103:8081/assets/boot.ipxe` over HTTP
 4. Matchbox matches MAC against generated groups → serves iPXE script with kernel, initrd, and kernel args (including per-machine `talos.config` URL)
 5. iPXE loads kernel + initrd
@@ -71,7 +71,7 @@ entries:
 
 **REQ-1.3.1**: dnsmasq operates in proxy DHCP mode only. No IP leases. The UDM Pro (main DHCP server) handles IP assignment. dnsmasq only supplements DHCP responses with PXE boot information.
 
-**REQ-1.3.2**: TFTP serves iPXE chainload binary (`undionly.kpxe` for BIOS). `ipxe.efi` is baked into the image for future UEFI support but not yet configured in dnsmasq.
+**REQ-1.3.2**: TFTP serves iPXE chainload binaries (`undionly.kpxe` for BIOS, `ipxe.efi` for UEFI).
 
 **REQ-1.3.3**: Two-stage chainload: PXE client → TFTP (iPXE binary) → HTTP (matchbox iPXE script).
 
@@ -482,7 +482,7 @@ The system has no `talosctl gen secret` task, no secret generation logic, no cer
 
 **REQ-5.5.3**: Resource usage suitable for Pi 4/5 (target: < 512MB RAM, minimal CPU at idle).
 
-**REQ-5.5.4**: The PXE clients served are x86_64 BIOS. UEFI PXE client support is deferred to a future phase. ARM64 PXE client support is not in scope.
+**REQ-5.5.4**: The PXE clients served are x86_64 (BIOS and UEFI). ARM64 PXE client support is not in scope.
 
 ---
 
@@ -536,7 +536,7 @@ The system has no `talosctl gen secret` task, no secret generation logic, no cer
 | NR-8 | **Booting the Pi itself over PXE** | Pi is the server host, not a client. Pi boot is firmware config. |
 | NR-9 | **Storage provisioning for Talos nodes** | Talos handles disk partitioning via machine config. |
 | NR-10 | **High availability / multi-instance PXE** | Single instance per L2 segment. Running multiple PXE-in-a-Box instances simultaneously on the same L2 segment will cause proxy DHCP conflicts. Only one instance must be active at a time. Cold standby with shared config if needed. The system does not detect or prevent this — operator's responsibility. |
-| NR-11 | **ARM64 PXE clients** | Container runs on ARM64, but serves x86_64 BIOS clients. UEFI and ARM64 client support is future. |
+| NR-11 | **ARM64 PXE clients** | Container runs on ARM64, but serves x86_64 clients (BIOS and UEFI). ARM64 client support is future. |
 | NR-12 | **OS disk installation for Ubuntu/Debian/Arch** | System delivers boot path only. OS installer/cloud-init handles disk install. |
 | NR-13 | **Air-gapped asset mirroring** | Downloads from upstream. `cleanup: false` + manual pre-staging for air-gapped. |
 | NR-14 | **Authentication on matchbox HTTP** | Matchbox has no auth. Security via network segmentation + bootstrap node pattern. |

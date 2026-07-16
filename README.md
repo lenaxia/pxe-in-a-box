@@ -229,7 +229,7 @@ pxe-in-a-box/
 - Docker on the PXE host (x86 or ARM)
 - Static IP for PXE host (DHCP reservation)
 - Router configured to point TFTP to PXE host
-- BIOS PXE clients (UEFI support planned)
+- BIOS and UEFI PXE clients supported
 
 ## License
 
