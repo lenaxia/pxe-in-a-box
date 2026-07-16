@@ -1,0 +1,40 @@
+# Machine definitions for PXE-in-a-Box
+# Maps MAC addresses to boot profiles and Talos machine configs.
+
+groups:
+  - name: controlplane
+    profile: talos-v1.10.6
+    template: controlplane.yaml.j2
+    vars:
+      cluster_name: homelab
+      cluster_endpoint: 192.168.2.10
+      kubernetes_version: v1.32.0
+    machines:
+      - mac: 00:e0:4c:68:00:8e
+        hostname: cp00
+        vars:
+          node_ip: 192.168.2.11
+      - mac: f4:4d:30:68:a3:b3
+        hostname: cp01
+        vars:
+          node_ip: 192.168.2.12
+
+  - name: workers
+    profile: talos-v1.10.6
+    template: worker.yaml.j2
+    vars:
+      cluster_name: homelab
+      cluster_endpoint: 192.168.2.10
+      kubernetes_version: v1.32.0
+    machines:
+      - mac: 00:e0:4c:68:00:a1
+        hostname: worker01
+      - mac: 00:e0:4c:68:00:0e
+        hostname: worker02
+
+# One-off machines with direct config files (no template rendering)
+singletons:
+  - mac: b8:ae:ed:73:c3:bc
+    hostname: melfina
+    profile: talos-v1.9.1
+    config: melfina.yaml

@@ -1,0 +1,27 @@
+# Proxy DHCP — no IP leases. UDM Pro handles IP assignment.
+# dnsmasq only supplements with PXE boot information.
+dhcp-range={{ dnsmasq_proxy_range }},proxy,{{ dnsmasq_proxy_netmask }}
+
+# Disable DNS (UDM Pro handles DNS for the network)
+port=0
+
+# TFTP
+enable-tftp
+tftp-root=/tftpboot
+
+# Detect iPXE user-class (sets "ipxe" tag on iPXE DHCP requests)
+dhcp-userclass=set:ipxe,iPXE
+
+# Stage 1: Raw PXE clients get iPXE binary via TFTP
+# tag:#ipxe means "NOT tagged as ipxe" (raw PXE client, first boot)
+# x86PC = BIOS clients. UEFI support deferred to future phase.
+pxe-service=tag:#ipxe,x86PC,"PXE chainload to iPXE",undionly.kpxe
+
+# Stage 2: iPXE clients get HTTP boot script
+# Once iPXE is loaded, it re-DHCPs with user-class "iPXE".
+# dnsmasq matches the ipxe tag and serves the HTTP URL.
+pxe-service=tag:ipxe,x86PC,"iPXE",http://{{ matchbox_addr }}:{{ matchbox_port }}/assets/boot.ipxe
+
+# Logging
+log-queries
+log-dhcp

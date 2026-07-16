@@ -1,0 +1,41 @@
+# Binaries
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go test coverage
+*.out
+coverage.txt
+
+# Go workspace files
+go.work
+go.work.sum
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Ansible retry files
+*.retry
+
+# Vault password files
+.vault_pass
+
+# Local config overrides (don't commit real secrets)
+ansible/group_vars/local.yml
+
+# Rendered/generated configs (generated at deploy time, not committed)
+generated/
+*.generated.yaml
+
+# Docker build artifacts
+*.tar

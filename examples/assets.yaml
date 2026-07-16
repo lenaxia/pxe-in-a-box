@@ -1,0 +1,40 @@
+# Asset manifest for PXE-in-a-Box
+# Defines all OS assets to download and manage.
+# Anything not listed here is preserved (cleanup is opt-in).
+
+cleanup: false
+
+talos:
+  - id: talos-v1.10.6
+    version: v1.10.6
+    arch: amd64
+  - id: talos-v1.9.1
+    version: v1.9.1
+    arch: amd64
+  # Custom Talos build with NVIDIA drivers via Image Factory
+  - id: talos-nvidia
+    image_factory_hash: "37f5a3fbd1e1e5d2a3c4"
+    version: v1.9.5
+    arch: amd64
+    download_uki: true
+  # Pin checksums for reproducibility (optional)
+  # - id: talos-v1.10.6
+  #   version: v1.10.6
+  #   arch: amd64
+  #   sha256:
+  #     vmlinuz: abc123...
+  #     initramfs.xz: def456...
+
+ubuntu:
+  - id: ubuntu-noble
+    release: noble
+    arch: amd64
+
+# debian:
+#   - id: debian-bookworm
+#     release: bookworm
+#     arch: amd64
+
+# arch:
+#   - id: arch-latest
+#     arch: amd64

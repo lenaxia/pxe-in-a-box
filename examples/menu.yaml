@@ -1,0 +1,13 @@
+# Boot menu for unknown machines (MAC not in machines.yaml)
+# On timeout, auto-boots into the default entry.
+
+timeout: 10
+default: talos
+
+entries:
+  - id: talos
+    label: "Talos Linux (Maintenance Mode)"
+    profile: talos-v1.10.6
+  - id: ubuntu
+    label: "Ubuntu Server 24.04"
+    profile: ubuntu-noble
