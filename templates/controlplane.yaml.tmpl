@@ -55,6 +55,8 @@ machine:
       wwid: {{ .InstallDiskSelector }}{{ end }}
     image: {{ .InstallerImage }}
     wipe: {{ .WipeDisk }}
+    extraKernelArgs:
+      - video=1920x1080@60e
   files:
     - content: |-
         [plugins."io.containerd.grpc.v1.cri"]

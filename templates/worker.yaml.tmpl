@@ -60,6 +60,8 @@ machine:
       wwid: {{ .InstallDiskSelector }}{{ end }}
     image: {{ .InstallerImage }}
     wipe: {{ .WipeDisk }}
+    extraKernelArgs:
+      - video=1920x1080@60e
   files:
 {{ if .IsGPU }}
     - content: |
