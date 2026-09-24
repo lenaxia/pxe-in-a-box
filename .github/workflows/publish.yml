@@ -1,0 +1,50 @@
+name: Publish (one-click)
+
+# One-click image publishing: run this workflow from the Actions UI with a
+# version tag. It tags the selected ref and pushes the tag, which triggers
+# release.yml (test gate -> multi-arch build -> GHCR/Docker Hub -> GitHub Release).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag to publish (e.g. v0.3.0)"
+        required: true
+        type: string
+      ref:
+        description: "Git ref to tag (default: main)"
+        required: false
+        default: main
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Tag release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || 'main' }}
+          fetch-depth: 0
+
+      - name: Validate version
+        run: |
+          version="${{ inputs.version }}"
+          if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version must match vX.Y.Z (got: $version)"
+            exit 1
+          fi
+          if git rev-parse "refs/tags/$version" >/dev/null 2>&1; then
+            echo "::error::tag $version already exists"
+            exit 1
+          fi
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ inputs.version }}" -m "Release ${{ inputs.version }}"
+          git push origin "${{ inputs.version }}"
