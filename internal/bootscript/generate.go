@@ -115,10 +115,15 @@ func buildKernelArgs(info *config.AssetInfo, entry config.MenuEntry) []string {
 		// which puts Talos into maintenance mode (no cluster join).
 		return []string{
 			"initrd=initramfs.xz",
+			"init_on_alloc=1",
+			"slab_nomerge",
+			"pti=on",
+			"console=tty0",
+			"consoleblank=0",
+			"nvme_core.io_timeout=4294967295",
+			"printk.devkmsg=on",
 			"talos.platform=metal",
 			"talos.config=null",
-			"console=tty0",
-			"printk.devkmsg=on",
 		}
 	case config.OSTypeUbuntu:
 		return []string{
