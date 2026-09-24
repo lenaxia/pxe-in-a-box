@@ -28,7 +28,7 @@ type AssetSpec struct {
 	ID          string
 	OSType      config.OSType
 	Arch        string
-	BaseDir     string // e.g., "/assets/talos-v1.10.6/amd64"
+	BaseDir     string // path relative to the assets root, e.g., "talos-v1.10.6/amd64"
 	Files       []FileSpec
 	ChecksumURL string // URL to a sha256sum.txt file (optional)
 }
@@ -55,7 +55,7 @@ func ResolveAssetSpecs(cfg *config.AssetsConfig) []AssetSpec {
 }
 
 func resolveTalos(a config.TalosAsset) AssetSpec {
-	baseDir := fmt.Sprintf("/assets/%s/%s", a.ID, a.Arch)
+	baseDir := fmt.Sprintf("%s/%s", a.ID, a.Arch)
 	spec := AssetSpec{
 		ID:      a.ID,
 		OSType:  config.OSTypeTalos,
@@ -102,7 +102,7 @@ func resolveTalos(a config.TalosAsset) AssetSpec {
 }
 
 func resolveUbuntu(a config.UbuntuAsset) AssetSpec {
-	baseDir := fmt.Sprintf("/assets/%s/%s", a.ID, a.Arch)
+	baseDir := fmt.Sprintf("%s/%s", a.ID, a.Arch)
 	// Ubuntu 24.04+ dropped traditional d-i netboot. The URLs below
 	// work for releases that have the netboot directory. Operators may
 	// need to manually stage files for newer releases.
@@ -121,7 +121,7 @@ func resolveUbuntu(a config.UbuntuAsset) AssetSpec {
 }
 
 func resolveDebian(a config.DebianAsset) AssetSpec {
-	baseDir := fmt.Sprintf("/assets/%s/%s", a.ID, a.Arch)
+	baseDir := fmt.Sprintf("%s/%s", a.ID, a.Arch)
 	base := fmt.Sprintf("https://deb.debian.org/debian/dists/%s/main/installer-%s/current/images/netboot/debian-installer/%s", a.Release, a.Arch, a.Arch)
 
 	return AssetSpec{
@@ -137,7 +137,7 @@ func resolveDebian(a config.DebianAsset) AssetSpec {
 }
 
 func resolveArch(a config.ArchAsset) AssetSpec {
-	baseDir := fmt.Sprintf("/assets/%s/%s", a.ID, a.Arch)
+	baseDir := fmt.Sprintf("%s/%s", a.ID, a.Arch)
 	base := "https://geo.mirror.pkgbuild.com/iso/latest"
 
 	return AssetSpec{

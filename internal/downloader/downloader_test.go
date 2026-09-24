@@ -129,7 +129,7 @@ func TestDownloadFile_Success(t *testing.T) {
 
 	spec := AssetSpec{
 		ID:      "test",
-		BaseDir: "/assets/test/amd64",
+		BaseDir: "test/amd64",
 		Files: []FileSpec{
 			{URL: server.URL + "/vmlinuz", Filename: "vmlinuz"},
 		},
@@ -147,7 +147,7 @@ func TestDownloadFile_Success(t *testing.T) {
 	}
 
 	// Verify file was written
-	destPath := filepath.Join(dir, "assets/test/amd64/vmlinuz")
+	destPath := filepath.Join(dir, "test/amd64/vmlinuz")
 	data, err := os.ReadFile(destPath)
 	if err != nil {
 		t.Fatalf("reading downloaded file: %v", err)
@@ -166,13 +166,13 @@ func TestDownloadFile_SkipsExisting(t *testing.T) {
 	dl, dir := newTestDownloader(t, nil)
 
 	// Pre-create the file
-	destDir := filepath.Join(dir, "assets/test/amd64")
+	destDir := filepath.Join(dir, "test/amd64")
 	os.MkdirAll(destDir, 0755)
 	os.WriteFile(filepath.Join(destDir, "vmlinuz"), []byte("existing"), 0644)
 
 	spec := AssetSpec{
 		ID:      "test",
-		BaseDir: "/assets/test/amd64",
+		BaseDir: "test/amd64",
 		Files: []FileSpec{
 			{URL: server.URL + "/vmlinuz", Filename: "vmlinuz"},
 		},
@@ -201,7 +201,7 @@ func TestDownloadFile_Retries(t *testing.T) {
 
 	spec := AssetSpec{
 		ID:      "test",
-		BaseDir: "/assets/test/amd64",
+		BaseDir: "test/amd64",
 		Files: []FileSpec{
 			{URL: server.URL + "/vmlinuz", Filename: "vmlinuz"},
 		},
@@ -227,7 +227,7 @@ func TestDownloadFile_FailsAfterMaxRetries(t *testing.T) {
 
 	spec := AssetSpec{
 		ID:      "test",
-		BaseDir: "/assets/test/amd64",
+		BaseDir: "test/amd64",
 		Files: []FileSpec{
 			{URL: server.URL + "/vmlinuz", Filename: "vmlinuz"},
 		},
@@ -253,7 +253,7 @@ func TestDownloadFile_SHA256Verification(t *testing.T) {
 
 	spec := AssetSpec{
 		ID:      "test",
-		BaseDir: "/assets/test/amd64",
+		BaseDir: "test/amd64",
 		Files: []FileSpec{
 			{URL: server.URL + "/vmlinuz", Filename: "vmlinuz", SHA256: hash},
 		},
@@ -276,7 +276,7 @@ func TestDownloadFile_SHA256Mismatch(t *testing.T) {
 
 	spec := AssetSpec{
 		ID:      "test",
-		BaseDir: "/assets/test/amd64",
+		BaseDir: "test/amd64",
 		Files: []FileSpec{
 			{URL: server.URL + "/vmlinuz", Filename: "vmlinuz", SHA256: "0000000000000000000000000000000000000000000000000000000000000000"},
 		},
@@ -302,7 +302,7 @@ func TestDownloadAll_MultipleAssets(t *testing.T) {
 	specs := []AssetSpec{
 		{
 			ID:      "talos-1",
-			BaseDir: "/assets/talos-1/amd64",
+			BaseDir: "talos-1/amd64",
 			Files: []FileSpec{
 				{URL: server.URL + "/vmlinuz", Filename: "vmlinuz"},
 				{URL: server.URL + "/initramfs.xz", Filename: "initramfs.xz"},
@@ -310,7 +310,7 @@ func TestDownloadAll_MultipleAssets(t *testing.T) {
 		},
 		{
 			ID:      "ubuntu-1",
-			BaseDir: "/assets/ubuntu-1/amd64",
+			BaseDir: "ubuntu-1/amd64",
 			Files: []FileSpec{
 				{URL: server.URL + "/linux", Filename: "linux"},
 			},
@@ -342,7 +342,7 @@ func TestDownloadAll_FailedAssetDoesNotBlockOthers(t *testing.T) {
 	specs := []AssetSpec{
 		{
 			ID:      "bad-asset",
-			BaseDir: "/assets/bad/amd64",
+			BaseDir: "bad/amd64",
 			Files: []FileSpec{
 				{URL: server.URL + "/bad/vmlinuz", Filename: "vmlinuz"},
 			},
