@@ -29,9 +29,6 @@ jobs:
   tag:
     name: Tag release
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ inputs.version }}
-      ref: ${{ inputs.ref || 'main' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.tag.outputs.version }}
+          ref: ${{ inputs.version }}
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -77,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.tag.outputs.version }}
+          ref: ${{ inputs.version }}
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
@@ -104,7 +101,7 @@ jobs:
             ghcr.io/${{ github.repository }}
             ${{ vars.DOCKERHUB_USERNAME && format('{0}/pxe-in-a-box', vars.DOCKERHUB_USERNAME) || '' }}
           tags: |
-            type=raw,value=${{ needs.tag.outputs.version }}
+            type=raw,value=${{ inputs.version }}
             type=raw,value=latest
 
       - name: Build and push
@@ -125,12 +122,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.tag.outputs.version }}
+          ref: ${{ inputs.version }}
 
       - name: Extract changelog
         id: changelog
         run: |
-          tag="${{ needs.tag.outputs.version }}"
+          tag="${{ inputs.version }}"
           if [ -f CHANGELOG.md ]; then
             body=$(awk "/## \[${tag}\]/{flag=1} /^## \[/{if(flag==1)exit} flag" CHANGELOG.md | sed '/^$/d;1d')
           fi
@@ -141,6 +138,6 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.tag.outputs.version }}
+          tag_name: ${{ inputs.version }}
           body: ${{ steps.changelog.outputs.body }}
           generate_release_notes: true
