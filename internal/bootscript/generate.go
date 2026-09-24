@@ -107,7 +107,7 @@ func bootPaths(info *config.AssetInfo) (kernel, initrd string) {
 // For Talos maintenance mode, uses talos.config=null (no cluster join).
 // For Talos with a config, uses talos.platform=metal.
 // For other OSes, uses minimal boot args.
-func buildKernelArgs(info *config.AssetInfo, entry config.MenuEntry) []string {
+func buildKernelArgs(info *config.AssetInfo, _ config.MenuEntry) []string {
 	switch info.OSType {
 	case config.OSTypeTalos:
 		// Menu entries for unknown machines always boot to maintenance mode

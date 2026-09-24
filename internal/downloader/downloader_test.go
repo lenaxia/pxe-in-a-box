@@ -120,7 +120,7 @@ func TestResolveTalosImageFactory(t *testing.T) {
 
 func TestDownloadFile_Success(t *testing.T) {
 	content := []byte("fake kernel data")
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write(content)
 	}))
 	defer server.Close()
@@ -158,7 +158,7 @@ func TestDownloadFile_Success(t *testing.T) {
 }
 
 func TestDownloadFile_SkipsExisting(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 		t.Error("server should not be called for existing file")
 	}))
 	defer server.Close()
@@ -186,7 +186,7 @@ func TestDownloadFile_SkipsExisting(t *testing.T) {
 
 func TestDownloadFile_Retries(t *testing.T) {
 	callCount := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		callCount++
 		if callCount < 3 {
 			http.Error(w, "temporary error", http.StatusServiceUnavailable)
@@ -217,7 +217,7 @@ func TestDownloadFile_Retries(t *testing.T) {
 }
 
 func TestDownloadFile_FailsAfterMaxRetries(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 	}))
 	defer server.Close()
@@ -241,7 +241,7 @@ func TestDownloadFile_FailsAfterMaxRetries(t *testing.T) {
 
 func TestDownloadFile_SHA256Verification(t *testing.T) {
 	content := []byte("kernel data for hashing")
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write(content)
 	}))
 	defer server.Close()
@@ -267,7 +267,7 @@ func TestDownloadFile_SHA256Verification(t *testing.T) {
 
 func TestDownloadFile_SHA256Mismatch(t *testing.T) {
 	content := []byte("kernel data")
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write(content)
 	}))
 	defer server.Close()
@@ -292,7 +292,7 @@ func TestDownloadFile_SHA256Mismatch(t *testing.T) {
 }
 
 func TestDownloadAll_MultipleAssets(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("data"))
 	}))
 	defer server.Close()

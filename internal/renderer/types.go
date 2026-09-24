@@ -64,6 +64,7 @@ type TemplateData struct {
 // RenderRole identifies whether this is a controlplane or worker template.
 type RenderRole string
 
+// Render roles: which template family a machine renders with.
 const (
 	RoleControlplane RenderRole = "controlplane"
 	RoleWorker       RenderRole = "worker"

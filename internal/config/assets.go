@@ -1,3 +1,5 @@
+// Package config parses and validates the pxe-in-a-box YAML configuration
+// files (machines.yaml, assets.yaml, menu.yaml, secrets.yaml).
 package config
 
 import (
@@ -52,6 +54,7 @@ type ArchAsset struct {
 // OSType identifies which OS family an asset belongs to.
 type OSType string
 
+// Asset OS families supported by the downloader and boot script generator.
 const (
 	OSTypeTalos  OSType = "talos"
 	OSTypeUbuntu OSType = "ubuntu"

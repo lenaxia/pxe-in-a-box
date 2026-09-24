@@ -85,7 +85,7 @@ func (c *Cleaner) Run(cfg *config.AssetsConfig) []DeleteResult {
 // dirSize calculates the total size of all files in a directory tree.
 func dirSize(path string) int64 {
 	var size int64
-	filepath.WalkDir(path, func(p string, d os.DirEntry, err error) error {
+	_ = filepath.WalkDir(path, func(_ string, d os.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}

@@ -200,8 +200,8 @@ func startServices(configDir, assetsDir string) error {
 	select {
 	case sig := <-sigCh:
 		log.Printf("received signal %v, shutting down", sig)
-		dnsmasq.Process.Signal(syscall.SIGTERM)
-		mb.Process.Signal(syscall.SIGTERM)
+		_ = dnsmasq.Process.Signal(syscall.SIGTERM)
+		_ = mb.Process.Signal(syscall.SIGTERM)
 		return nil
 	case err := <-doneCh:
 		if err != nil {

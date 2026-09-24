@@ -54,11 +54,12 @@ func (d *Downloader) DownloadAll(specs []AssetSpec) *Summary {
 		summary.Results = append(summary.Results, result)
 
 		for _, fr := range result.Files {
-			if fr.Error != nil {
+			switch {
+			case fr.Error != nil:
 				summary.Failed++
-			} else if fr.Skipped {
+			case fr.Skipped:
 				summary.Skipped++
-			} else {
+			default:
 				summary.Downloaded++
 			}
 		}
@@ -127,12 +128,12 @@ func (d *Downloader) downloadFile(destDir string, spec FileSpec, checksums map[s
 			actualSHA, err := sha256File(destPath)
 			if err != nil {
 				lastErr = fmt.Errorf("checksum read failed: %w", err)
-				os.Remove(destPath)
+				_ = os.Remove(destPath)
 				continue
 			}
 			if actualSHA != expectedSHA {
 				lastErr = fmt.Errorf("checksum mismatch: expected %s, got %s", expectedSHA[:12]+"...", actualSHA[:12]+"...")
-				os.Remove(destPath)
+				_ = os.Remove(destPath)
 				continue
 			}
 		}
@@ -149,7 +150,7 @@ func (d *Downloader) fetchAndSave(url, destPath string) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("HTTP GET: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return 0, fmt.Errorf("HTTP %d", resp.StatusCode)
@@ -162,14 +163,14 @@ func (d *Downloader) fetchAndSave(url, destPath string) (int64, error) {
 	}
 
 	written, err := io.Copy(file, resp.Body)
-	file.Close()
+	_ = file.Close()
 	if err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath)
 		return 0, fmt.Errorf("writing file: %w", err)
 	}
 
 	if err := os.Rename(tmpPath, destPath); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath)
 		return 0, fmt.Errorf("renaming temp file: %w", err)
 	}
 
@@ -186,7 +187,7 @@ func (d *Downloader) fetchChecksums(spec AssetSpec) map[string]string {
 		d.Log.Printf("  [warn] could not fetch checksums from %s: %v", spec.ChecksumURL, err)
 		return nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		d.Log.Printf("  [warn] checksums HTTP %d from %s", resp.StatusCode, spec.ChecksumURL)
@@ -224,7 +225,7 @@ func sha256File(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, file); err != nil {

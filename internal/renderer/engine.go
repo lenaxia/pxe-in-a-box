@@ -94,8 +94,7 @@ func (e *Engine) loadTemplate(name string) (*template.Template, error) {
 	return tmpl, nil
 }
 
-// RenderAll renders configs for every machine in a machines config.
-// It clears the output directory first to remove stale files.
+// RenderSpec describes a single machine render request.
 type RenderSpec struct {
 	Hostname string
 	Template string
@@ -199,6 +198,6 @@ func atoiOr(s string, def int) int {
 		return def
 	}
 	var n int
-	fmt.Sscanf(s, "%d", &n)
+	_, _ = fmt.Sscanf(s, "%d", &n)
 	return n
 }

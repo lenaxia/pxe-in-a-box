@@ -49,7 +49,7 @@ type Endpoint struct {
 	Port    int    // e.g., 8081
 }
 
-// String returns the base URL (e.g., "http://192.168.2.103:8081").
+// BaseURL returns the base URL (e.g., "http://192.168.2.103:8081").
 func (e Endpoint) BaseURL() string {
 	return fmt.Sprintf("http://%s:%d", e.Address, e.Port)
 }

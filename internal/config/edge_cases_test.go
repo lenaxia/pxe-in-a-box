@@ -208,17 +208,14 @@ func TestValidate_MissingMenuFields(t *testing.T) {
 	}
 }
 
-func TestValidate_PartialConfig_OnlyMachines(t *testing.T) {
+func TestValidate_PartialConfig_OnlyMachines(_ *testing.T) {
 	fc := &FullConfig{
 		Machines: validMachines(),
 		// Assets and Menu are nil
 	}
-	err := Validate(fc)
-	// Should validate machines only, not crash on nil Assets/Menu
-	if err != nil {
-		// Machine validation may pass — that's fine
-		// The point is it shouldn't panic
-	}
+	// Should validate machines only, not crash on nil Assets/Menu.
+	// Machine validation may pass or fail — the point is it shouldn't panic.
+	_ = Validate(fc)
 }
 
 func TestNewMAC_Formats(t *testing.T) {

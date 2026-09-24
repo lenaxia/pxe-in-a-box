@@ -41,8 +41,8 @@ type Singleton struct {
 	Config   string `yaml:"config"`
 }
 
-// AllMachines returns every machine defined in groups and singletons.
-// This is used for duplicate MAC detection and iteration during generation.
+// DefinedMachine is a machine flattened from groups or singletons.
+// It is used for duplicate MAC detection and iteration during generation.
 type DefinedMachine struct {
 	MAC      MAC
 	Hostname string
